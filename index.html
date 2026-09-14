@@ -160,19 +160,19 @@
 
     .loading {
       text-align: center;
-      padding: 40px;
+      padding: 30px;
       color: var(--muted);
     }
 
     .spinner {
       display: inline-block;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border: 3px solid var(--border);
       border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      margin-right: 8px;
+      margin-right: 10px;
       vertical-align: middle;
     }
 
@@ -180,13 +180,30 @@
       to { transform: rotate(360deg); }
     }
 
+    .loading-active {
+      pointer-events: none;
+    }
+
+    .loading-active input,
+    .loading-active textarea,
+    .loading-active button {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    .loading-active button {
+      cursor: default;
+    }
+
     .error {
       background: #fff5f5;
       border: 1px solid #fc8181;
       color: #c53030;
-      padding: 16px;
-      border-radius: 6px;
-      margin-bottom: 20px;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      line-height: 1.4;
     }
 
     .result-section {
@@ -475,25 +492,45 @@
     }
 
     @media (max-width: 600px) {
-      body { padding: 12px; }
-      .card { padding: 16px; margin-bottom: 16px; }
-      h1 { font-size: 1.4rem; }
-      .subtitle { font-size: 0.85rem; }
-      .input-group { margin-bottom: 16px; }
-      label { font-size: 0.85rem; }
-      textarea, input[type="text"] { font-size: 0.9rem; padding: 10px; }
-      button { width: 100%; padding: 14px; font-size: 1rem; }
-      .section-title { font-size: 1rem; flex-direction: column; align-items: flex-start; gap: 8px; }
-      .word-card { padding: 12px; }
+      body { padding: 10px; padding-top: env(safe-area-inset-top, 10px); }
+      .container { padding: 0 4px; }
+      header { margin-bottom: 16px; }
+      h1 { font-size: 1.3rem; margin-bottom: 4px; }
+      .subtitle { font-size: 0.8rem; }
+      .card { padding: 14px; margin-bottom: 12px; }
+      .input-group { margin-bottom: 12px; }
+      label { font-size: 0.85rem; margin-bottom: 4px; }
+      textarea, input[type="text"] {
+        padding: 12px;
+        font-size: 16px;
+        line-height: 1.4;
+      }
+      button {
+        width: 100%;
+        padding: 16px;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .hint { font-size: 0.75rem; margin-top: 2px; }
+      .section-title { font-size: 1rem; margin: 16px 0 8px; }
+      .profile-interpretation { padding: 12px; margin-bottom: 12px; }
+      .profile-mapping { padding: 10px 12px; margin-top: 8px; }
+      .word-cards-section { margin-top: 16px; }
+      .word-cards-title { font-size: 1rem; margin-bottom: 8px; }
+      .word-card { padding: 12px; margin-bottom: 8px; }
       .word-card-title { font-size: 1rem; }
-      .word-card-label { min-width: 60px; font-size: 0.75rem; }
+      .word-card-label { min-width: 50px; font-size: 0.75rem; }
       .word-card-value { font-size: 0.85rem; }
-      .word-card-origin, .word-card-context, .word-card-reason { font-size: 0.8rem; padding: 6px 10px; }
-      .reason-toggle-btn { width: 100%; justify-content: center; margin-top: 6px; }
-      .csv-preview { font-size: 0.7rem; padding: 10px; }
-      .today-words { padding: 16px; }
-      .toast { bottom: 10px; right: 10px; left: 10px; font-size: 0.85rem; padding: 10px 16px; }
-      footer { font-size: 0.8rem; padding-top: 16px; margin-top: 24px; }
+      .word-card-origin, .word-card-context, .word-card-reason { font-size: 0.8rem; padding: 6px 8px; margin: 4px 0; }
+      .reason-toggle-btn { width: 100%; padding: 8px; margin-top: 4px; font-size: 0.8rem; }
+      .today-words { padding: 14px; margin-bottom: 12px; }
+      .today-words h3 { font-size: 1rem; margin-bottom: 8px; }
+      .csv-preview-header { margin-bottom: 4px; }
+      .csv-preview-toggle { padding: 6px 10px; font-size: 0.8rem; }
+      .csv-preview { font-size: 0.7rem; padding: 8px; max-height: 120px; }
+      .download-btn { margin-top: 8px; }
+      .today-words + div { margin-top: 6px; padding: 8px 10px; font-size: 0.8rem; }
+      footer { font-size: 0.75rem; padding-top: 12px; margin-top: 16px; }
       .profile-interpretation, .profile-mapping { padding: 12px; }
       .profile-mapping h4 { font-size: 0.85rem; }
       .profile-mapping p { font-size: 0.8rem; }
@@ -516,8 +553,11 @@
           같은 콘텐츠라도 누가 보느냐에 따라 카드가 달라집니다.
         </span>
       </p>
-      <div style="margin-top: 12px; padding: 12px 16px; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 6px; font-size: 0.85rem; color: #276749;">
-        <strong>이렇게 써보세요:</strong> 카운터에서 내일 바로 쓸 표현이 필요하면, 브이로그 자막이나 매장 매뉴얼 원문을 넣고 <strong>"내 상황"</strong>에 "내일 첫 shift, For here or to go? / Make that a combo? 오늘 바로 써야 함" 정도만 입력하면 돼요.
+      <div style="margin-top: 12px; padding: 12px 16px; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 6px; font-size: 0.85rem; color: #276749; line-height: 1.5;">
+        <strong>처음 쓰면:</strong> 원문 텍스트 붙이기 → 내 상황 한 줄 → "어휘 추출하기" 누르면 끝.<br>
+        <strong>예를 들면:</strong> 버거집 브이로그 자막 붙이고, "내일 첫 shift, For here or to go? / Make that a combo? 오늘 바로 써야 함" 한 줄.<br>
+        <span style="color: #6b9bd1; font-size: 0.75rem;">(위 예시는 지우거나 바꿔서 사용하세요.)</span>
+      </div>
       </div>
     </header>
 
@@ -592,8 +632,9 @@
       <div class="result-section">
         <div class="section-title">오늘 바로 쓸 표현 3개 (우선)</div>
         <div id="todayWords" class="today-words"></div>
-        <div style="margin-top: 8px; padding: 10px 14px; background: #fff8e6; border: 1px solid #f6e05e; border-radius: 6px; font-size: 0.85rem; color: #744210;">
-          <strong>💡 이렇게 써보세요:</strong> 이 3개 표현을 휴대폰에 저장하거나 캡처해서 내일 카운터에 갈 때 보세요. "For here or to go?"부터 시작해서, 주문이 들어오면 "Do you want to make that a combo?"로 업셀하고, 계산할 때 "That'll be $X.XX. Here's your change."로 마무리하면 돼요.
+        <div style="margin-top: 8px; padding: 10px 12px; background: #fff8e6; border: 1px solid #f6e05e; border-radius: 6px; font-size: 0.8rem; color: #744210; line-height: 1.4;">
+          <strong>💡 오늘/당장 쓸 표현 3개예요.</strong> 카운터에서 바로 쓸 수 있는 말 위주로 뽑았어요. 휴대폰에 저장하거나 캡처해서 내일 갈 때 보세요. "For here or to go?"부터 시작해서, 주문이 들어오면 "Do you want to make that a combo?"로 업셀하고, 계산할 때 "That'll be $X.XX. Here's your change."로 마무리하면 돼요.
+        </div>
         </div>
       </div>
 
@@ -609,8 +650,9 @@
         <button id="downloadCsvBtn" class="download-btn" style="margin-top: 12px;">
           <span>📥</span> CSV 다운로드 (vocab-YYYY-MM-DD.csv)
         </button>
-        <div style="margin-top: 10px; padding: 10px 14px; background: #f7fafc; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; color: var(--muted);">
-          📚 <strong>이렇게 활용하세요:</strong> 다운로드한 CSV를 Anki에 임포트하면 이대로 단어장이 돼요.
+        <div style="margin-top: 10px; padding: 10px 12px; background: #f7fafc; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; color: var(--muted); line-height: 1.4;">
+          📚 <strong>이렇게 활용하세요:</strong> 다운로드한 CSV를 Anki에 임포트하면 이대로 단어장이 돼요. 휴대폰에서 보려면 캡처하거나 PDF로 저장해도 되고, "오늘의 3단어"만 따로 저장해도 내일 바로 쓸 수 있어요.
+        </div>
           휴대폰에서 보려면 캡처하거나 PDF로 저장해도 되고, "오늘의 3단어"만 따로 저장해도 내일 바로 쓸 수 있어요.
         </div>
       </div>
@@ -662,12 +704,14 @@
       loadingEl.classList.remove('hidden');
       generateBtn.disabled = true;
       document.body.classList.add('loading-active');
+      generateBtn.textContent = '추출 중...';
     }
 
     function hideLoading() {
       loadingEl.classList.add('hidden');
       generateBtn.disabled = false;
       document.body.classList.remove('loading-active');
+      generateBtn.textContent = '어휘 추출하기';
     }
 
     function showResult() {
@@ -774,12 +818,23 @@
           csvLines = [trimmed];
           continue;
         }
-        if (inCsv) {
-          if (trimmed.startsWith('```') || (trimmed && !trimmed.includes(',') && !trimmed.startsWith('요일'))) {
-            if (trimmed.startsWith('```')) { inCsv = false; }
-            continue;
+        if (inCsv && trimmed.startsWith('```')) {
+          inCsv = false;
+          continue;
+        }
+        if (inCsv && trimmed.startsWith('##')) {
+          inCsv = false;
+        } else if (inCsv) {
+          const isTableRow = /^\s*\|[\s|]+\|$/.test(trimmed) || (trimmed.includes('|') && trimmed.split(',').length <= 1);
+          if (isTableRow) {
+            const csvFromTable = trimmed.split('|').map(s => s.trim()).filter(s => s).join(',');
+            if (csvFromTable.split(',').length >= 2) {
+              csvLines.push(csvFromTable);
+            }
+          } else if (trimmed.includes(',')) {
+            csvLines.push(trimmed);
           }
-          csvLines.push(trimmed);
+          continue;
         }
         if (trimmed.includes('오늘의 3단어') || trimmed.includes('3단어') || trimmed.includes('Today')) {
           inTodayWords = true;
