@@ -1,0 +1,20 @@
+{
+  "name": "vocab-curator-service",
+  "version": "0.1.0",
+  "description": "MABC 2026 결선 MVP: vocab-curator 기반 어휘 큐레이션 서비스",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test_vocab.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.18.2",
+    "openai": "^7.15.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vocab-curator — 나에게 맞는 어휘 큐레이션</title>
+  <style>
+    /* 간결한 스타일 (파일당 3KB 이내 권장) */
+    :root {
+      --bg: #fafafa;
+      --card: #fff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --primary: #3182ce;
+      --primary-hover: #2c5282;
+      --accent: #e53e3e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    /* 로딩 활성 시 입력 차단 */
+    .loading-active input,
+    .loading-active textarea,
+    .loading-active button {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* CSV 미리보기 토글 */
+    .csv-preview-toggle {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .csv-preview-toggle:hover {
+      background: #f7fafc;
+      color: var(--primary);
+    }
+    .csv-preview-toggle .toggle-icon {
+      transition: transform 0.2s;
+    }
+    .csv-preview-toggle .toggle-icon.open {
+      transform: rotate(90deg);
+    }
+    .csv-preview.collapsed {
+      max-height: 100px;
+      overflow: hidden;
+      margin-bottom: 0;
+    }
+    .csv-preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .csv-preview-header span {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    textarea:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--muted);
+    }
+
+    .btn-secondary:hover {
+      background: #4a5568;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error {
+      background: #fff5f5;
+      border: 1px solid #fc8181;
+      color: #c53030;
+      padding: 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    .result-section {
+      margin-top: 24px;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 24px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .profile-interpretation {
+      background: #ebf8ff;
+      border: 1px solid #bee3f8;
+      padding: 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+
+    .profile-interpretation p {
+      margin: 0 0 8px;
+    }
+
+    .profile-interpretation p:last-child {
+      margin-bottom: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f7fafc;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:nth-child(even) {
+      background: #f7fafc;
+    }
+
+    .csv-preview {
+      background: #f7fafc;
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 6px;
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .today-words {
+      background: #fffff0;
+      border: 1px solid #f6e05e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .today-words h3 {
+      margin: 0 0 12px;
+      color: #744210;
+    }
+
+    .dialog {
+      font-style: italic;
+      padding: 12px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+
+    .dialog p {
+      margin: 0 0 8px;
+    }
+
+    .priority-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--text);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    /* 접기/펼치기 스타일 추가 */
+    .fold-toggle {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 12px;
+    }
+
+    .fold-toggle:hover {
+      background: #f7fafc;
+    }
+
+    .word-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .word-card:hover {
+      border-color: var(--primary);
+    }
+
+    .word-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .word-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .word-card-priority {
+      flex-shrink: 0;
+    }
+
+    .word-card-body {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .word-card-row {
+      margin-bottom: 6px;
+    }
+
+    .word-card-label {
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.8rem;
+      display: inline-block;
+      min-width: 80px;
+    }
+
+    .word-card-value {
+      color: var(--text);
+    }
+
+    .word-card-origin {
+      background: #f7fafc;
+      border-left: 3px solid var(--primary);
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin: 8px 0;
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
+    .word-card-context {
+      background: #fffff0;
+      border-left: 3px solid #f6e05e;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin: 8px 0;
+      font-size: 0.85rem;
+    }
+
+    .word-card-reason {
+      background: #ebf8ff;
+      border-left: 3px solid #3182ce;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-size: 0.85rem;
+    }
+
+    .word-card-reason-label {
+      font-weight: 600;
+      color: #2b6cb0;
+      font-size: 0.8rem;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .reason-toggle-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 8px;
+      transition: all 0.2s;
+    }
+
+    .reason-toggle-btn:hover {
+      background: #f7fafc;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .reason-toggle-btn.open {
+      background: #ebf8ff;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .reason-content {
+      display: none;
+      margin-top: 6px;
+    }
+
+    .reason-content.open {
+      display: block;
+    }
+
+    .profile-mapping {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+
+    .profile-mapping h4 {
+      margin: 0 0 8px;
+      color: #276749;
+      font-size: 0.9rem;
+    }
+
+    .profile-mapping p {
+      margin: 0 0 4px;
+      font-size: 0.85rem;
+      color: #2d3748;
+    }
+
+    .profile-mapping p:last-child {
+      margin-bottom: 0;
+    }
+
+    .word-cards-section {
+      margin-top: 24px;
+    }
+
+    .word-cards-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .word-count {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .word-cards-container {
+      /* 카드들이 들어갈 공간 */
+    }
+  </style>
+  
+  <!-- 모바일 반응형 스타일 (좁은 화면 대응) -->
+  <style>
+    @media (max-width: 600px) {
+      body {
+        padding: 12px;
+      }
+      
+      .card {
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      
+      h1 {
+        font-size: 1.4rem;
+      }
+      
+      .subtitle {
+        font-size: 0.85rem;
+      }
+      
+      .input-group {
+        margin-bottom: 16px;
+      }
+      
+      label {
+        font-size: 0.85rem;
+      }
+      
+      textarea, input[type="text"] {
+        font-size: 0.9rem;
+        padding: 10px;
+      }
+      
+      button {
+        width: 100%;
+        padding: 14px;
+        font-size: 1rem;
+      }
+      
+      .section-title {
+        font-size: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      
+      .word-card {
+        padding: 12px;
+      }
+      
+      .word-card-title {
+        font-size: 1rem;
+      }
+      
+      .word-card-label {
+        min-width: 60px;
+        font-size: 0.75rem;
+      }
+      
+      .word-card-value {
+        font-size: 0.85rem;
+      }
+      
+      .word-card-origin, 
+      .word-card-context, 
+      .word-card-reason {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+      }
+      
+      .reason-toggle-btn {
+        width: 100%;
+        justify-content: center;
+        margin-top: 6px;
+      }
+      
+      .csv-preview {
+        font-size: 0.7rem;
+        padding: 10px;
+      }
+      
+      .today-words {
+        padding: 16px;
+      }
+      
+      .toast {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        font-size: 0.85rem;
+        padding: 10px 16px;
+      }
+      
+      footer {
+        font-size: 0.8rem;
+        padding-top: 16px;
+        margin-top: 24px;
+      }
+      
+      .profile-interpretation, 
+      .profile-mapping {
+        padding: 12px;
+      }
+      
+      .profile-mapping h4 {
+        font-size: 0.85rem;
+      }
+      
+      .profile-mapping p {
+        font-size: 0.8rem;
+      }
+    }
+    
+    @media (max-width: 380px) {
+      .word-card-header {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .word-card-priority {
+        align-self: flex-start;
+      }
+      
+      .word-card-priority span {
+        display: block;
+        margin-top: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>vocab-curator</h1>
+      <p class="subtitle">
+        내가 고른 콘텐츠에서, <strong>내 상황에 맞는 어휘</strong>를 뽑아주는 서비스.<br>
+        <span style="font-size: 0.85rem; color: var(--muted);">
+          같은 콘텐츠라도 누가 보느냐에 따라 카드가 달라집니다.
+        </span>
+      </p>
+    </header>
+
+    <!-- 입력 카드 -->
+    <div class="card">
+      <div class="input-group">
+        <label for="sourceText">원문 텍스트 (필수)</label>
+        <textarea 
+          id="sourceText" 
+          rows="6" 
+          placeholder="브이로그 자막, 매장 매뉴얼, 드라마 대사 등 원하는 콘텐츠 원문을 붙여넣으세요."
+        ></textarea>
+        <p class="hint">예: "I'm on grill today, so you take register. For here or to go?..."</p>
+      </div>
+
+      <div class="input-group">
+        <label for="profile">내 상황 (있으면 더 맞춤)</label>
+        <input 
+          type="text" 
+          id="profile" 
+          placeholder="예: 미국 버거집 카운터 알바 준비 중, 내일 첫 shift, For here or to go? / Make that a combo? 오늘 바로 써야 함"
+        >
+        <p class="hint">한 줄~두 줄 정도면 충분합니다. 없어도 기본 프로필 해석으로 동작합니다.</p>
+      </div>
+
+      <div class="input-group">
+        <label for="knownWords">이미 아는 단어 목록 (선택)</label>
+        <input 
+          type="text" 
+          id="knownWords" 
+          placeholder="comma, patty, grill (콤마로 구분)"
+        >
+        <p class="hint">이미 아는 단어를 제외할 때 사용합니다. 없으면 스킵해도 됩니다.</p>
+      </div>
+
+      <button id="generateBtn" type="button">어휘 추출하기</button>
+      <p class="hint" style="margin-top: 12px;">결과는 Solar Pro 4 API를 통해 생성됩니다. API 키는 서버에서 관리합니다.</p>
+    </div>
+
+    <!-- 로딩 상태 -->
+    <div id="loading" class="loading hidden">
+      <span class="spinner"></span> 어휘을 추출하고 있습니다...
+    </div>
+
+    <!-- 오류 표시 -->
+    <div id="error" class="error hidden"></div>
+
+    <!-- 결과 영역 -->
+    <div id="result" class="hidden">
+      <div class="result-section">
+        <div class="section-title">프로필 해석</div>
+        <div id="profileInterpretation" class="profile-interpretation"></div>
+      </div>
+
+      <div class="result-section word-cards-section">
+        <div class="word-cards-title">
+          <span>추출된 어휘</span>
+          <span class="word-count" id="wordCount"></span>
+        </div>
+        <div id="wordCards" class="word-cards-container"></div>
+        <div id="wordCardsEmpty" class="hidden" style="margin-top: 12px;">
+          <p style="color: var(--muted); font-size: 0.9rem;">표 데이터를 파싱하지 못했습니다. 아래 CSV 원본을 확인하세요.</p>
+        </div>
+      </div>
+
+      <div class="result-section">
+        <div class="section-title">오늘 바로 쓸 표현 3개 (우선)</div>
+        <div id="todayWords" class="today-words"></div>
+      </div>
+
+      <div class="result-section">
+        <div class="section-title">Anki CSV 다운로드</div>
+        <div class="csv-preview-header">
+          <span>CSV 원본 (접어서 볼 수 있어요)</span>
+          <button id="csvToggleBtn" class="csv-preview-toggle">
+            <span class="toggle-icon">▶</span> 접기/펼치기
+          </button>
+        </div>
+        <div id="csvPreview" class="csv-preview"></div>
+        <button id="downloadCsvBtn" class="download-btn" style="margin-top: 12px;">
+          <span>📥</span> CSV 다운로드 (vocab-YYYY-MM-DD.csv)
+        </button>
+      </div>
+
+      <footer>
+        <p>이 서비스는 vocab-curator 스킬을 기반으로 합니다. | Solar Pro 4 API 사용 | 개인정보 처리 없음</p>
+      </footer>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // DOM 요소
+    const sourceTextInput = document.getElementById('sourceText');
+    const profileInput = document.getElementById('profile');
+    const knownWordsInput = document.getElementById('knownWords');
+    const generateBtn = document.getElementById('generateBtn');
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const resultEl = document.getElementById('result');
+    const profileInterpretationEl = document.getElementById('profileInterpretation');
+    const wordCardsEl = document.getElementById('wordCards');
+    const wordCardsEmptyEl = document.getElementById('wordCardsEmpty');
+    const todayWordsEl = document.getElementById('todayWords');
+    const csvPreviewEl = document.getElementById('csvPreview');
+    const csvToggleBtn = document.getElementById('csvToggleBtn');
+    const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+    const toastEl = document.getElementById('toast');
+
+    // 접기/펼치기 상태
+    let foldOpen = true;
+
+    // 토스트 메시지
+    function showToast(message, duration = 3000) {
+      toastEl.textContent = message;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), duration);
+    }
+
+    // 오류 표시
+    function showError(message) {
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+      resultEl.classList.add('hidden');
+    }
+
+    // 오류 숨기기
+    function hideError() {
+      errorEl.classList.add('hidden');
+    }
+
+    // 로딩 상태
+    function showLoading() {
+      loadingEl.classList.remove('hidden');
+      generateBtn.disabled = true;
+      document.body.classList.add('loading-active');
+    }
+
+    function hideLoading() {
+      loadingEl.classList.add('hidden');
+      generateBtn.disabled = false;
+      document.body.classList.remove('loading-active');
+    }
+
+    // 결과 표시
+    function showResult() {
+      resultEl.classList.remove('hidden');
+    }
+
+    // API 호출
+    async function generateVocabulary() {
+      hideError();
+      
+      const profile = profileInput.value.trim() || '';
+      const sourceText = sourceTextInput.value.trim();
+      
+      if (!sourceText) {
+        showError('원문 텍스트를 입력해주세요.');
+        sourceTextInput.focus();
+        return;
+      }
+      
+      const knownWords = knownWordsInput.value.trim() || '';
+      
+      showLoading();
+      
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profile: profile,
+            sourceText: sourceText,
+            knownWords: knownWords
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `API 오류: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || '어휘 생성 실패');
+        }
+        
+        renderResult(data.result);
+        showResult();
+        
+      } catch (error) {
+        showError(error.message);
+        console.error('어휘 생성 오류:', error);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // 결과 렌더링
+    function renderResult(rawResult) {
+      const lines = rawResult.split('\n');
+      let currentSection = '';
+      let profileLines = [];
+      let csvLines = [];
+      let todayWordsLines = [];
+      let inCsv = false;
+      let inTodayWords = false;
+      let profileMappingLines = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('##') || trimmed.startsWith('# ')) {
+          currentSection = trimmed.replace(/^#+\s*/, '');
+          continue;
+        }
+        if (currentSection.includes('프로필 해석') || currentSection.includes('프로필')) {
+          if (trimmed && !trimmed.startsWith('```') && !trimmed.startsWith('표제어')) {
+            profileLines.push(trimmed);
+          }
+          continue;
+        }
+        if (profileLines.length > 0 && profileMappingLines.length < 5 &&
+            trimmed && !trimmed.startsWith('```') && !trimmed.startsWith('표제어') &&
+            !trimmed.includes('오늘의 3단어') && !trimmed.includes('3단어') && !trimmed.includes('Today')) {
+          if (trimmed.includes('장면') || trimmed.includes('상황') || trimmed.includes('맥락') ||
+              trimmed.includes('카운터') || trimmed.includes('시험') || trimmed.includes('왜') ||
+              trimmed.includes('때문에') || trimmed.includes('목적으로') || trimmed.includes('접객') ||
+              trimmed.includes('주문') || trimmed.includes('계산') || trimmed.includes('업셀')) {
+            profileMappingLines.push(trimmed);
+          }
+        }
+        if (trimmed === '표제어,읽기,품사,뜻,원문예문,원문예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
+          inCsv = true;
+          csvLines = [trimmed];
+          continue;
+        }
+        if (inCsv) {
+          if (trimmed.startsWith('```') || (trimmed && !trimmed.includes(',') && !trimmed.startsWith('요일'))) {
+            if (trimmed.startsWith('```')) { inCsv = false; }
+            continue;
+          }
+          csvLines.push(trimmed);
+        }
+        if (trimmed.includes('오늘의 3단어') || trimmed.includes('3단어') || trimmed.includes('Today')) {
+          inTodayWords = true;
+          todayWordsLines = [];
+          continue;
+        }
+        if (inTodayWords && trimmed && !trimmed.startsWith('```')) {
+          todayWordsLines.push(trimmed);
+        }
+      }
+
+      profileInterpretationEl.innerHTML = profileLines
+        .filter(l => l)
+        .map(l => `<p>${escapeHtml(l)}</p>`)
+        .join('');
+
+      if (profileMappingLines.length > 0) {
+        const mappingEl = document.createElement('div');
+        mappingEl.className = 'profile-mapping';
+        mappingEl.innerHTML = `
+          <h4>내 상황에 맞춘 매핑</h4>
+          ${profileMappingLines.filter(l => l).map(l => `<p>${escapeHtml(l)}</p>`).join('')}
+        `;
+        profileInterpretationEl.appendChild(mappingEl);
+      }
+
+      if (csvLines.length > 1) {
+        const cards = csvLinesToCards(csvLines);
+        renderWordCards(cards);
+      } else {
+        wordCardsEl.classList.add('hidden');
+        wordCardsEmptyEl.classList.remove('hidden');
+      }
+
+      if (todayWordsLines.length > 0) {
+        todayWordsEl.innerHTML = todayWordsLines
+          .filter(l => l)
+          .map(l => `<p>${escapeHtml(l)}</p>`)
+          .join('');
+      } else {
+        todayWordsEl.innerHTML = '<p>오늘의 3단어를 파싱하지 못했습니다.</p>';
+      }
+
+      const csvRaw = csvLines.join('\n');
+      csvPreviewEl.textContent = csvRaw || 'CSV 데이터를 추출하지 못했습니다.';
+      downloadCsvBtn.dataset.csvData = csvRaw;
+    }
+
+    function csvLinesToCards(lines) {
+      if (lines.length < 2) return [];
+      const headers = parseCsvLine(lines[0]);
+      const cards = [];
+      for (let i = 1; i < lines.length; i++) {
+        const row = parseCsvLine(lines[i]);
+        if (row.length < headers.length) continue;
+        const card = {};
+        for (let j = 0; j < headers.length; j++) {
+          card[headers[j]] = row[j] || '';
+        }
+        cards.push(card);
+      }
+      return cards;
+    }
+
+    function renderWordCards(cards) {
+      if (cards.length === 0) {
+        wordCardsEl.classList.add('hidden');
+        wordCardsEmptyEl.classList.remove('hidden');
+        return;
+      }
+      wordCardsEl.classList.remove('hidden');
+      wordCardsEmptyEl.classList.add('hidden');
+      document.getElementById('wordCount').textContent = `${cards.length}개 단어`;
+
+      let html = '';
+      for (let idx = 0; idx < cards.length; idx++) {
+        const card = cards[idx];
+        const isPriorityNow = card['우선순위'] &&
+          (card['우선순위'].includes('지금 바로') || card['우선순위'].includes('Now'));
+        const title = card['표제어'] || '표제어 없음';
+        const reading = card['읽기'] || '';
+        const meaning = card['뜻'] || '-';
+        const originExample = card['원문예문'] || '-';
+        const contextExample = card['내상황에서'] || '-';
+        const reason = card['왜필요한가'] || '-';
+        const priority = card['우선순위'] || '-';
+        const confidence = card['확신도'] || '-';
+        const titleDisplay = reading ? `${title} (${reading})` : title;
+
+        html += `
+          <div class="word-card">
+            <div class="word-card-header">
+              <h3 class="word-card-title">${escapeHtml(titleDisplay)}</h3>
+              <div class="word-card-priority">
+                ${isPriorityNow ? '<span class="priority-badge">지금 바로</span>' : ''}
+                <span style="font-size: 0.75rem; color: var(--muted);">${escapeHtml(priority)}</span>
+              </div>
+            </div>
+            <div class="word-card-body">
+              <div class="word-card-row">
+                <span class="word-card-label">뜻:</span>
+                <span class="word-card-value">${escapeHtml(meaning)}</span>
+              </div>
+              ${originExample && originExample !== '-' ? `
+                <div class="word-card-origin">
+                  <span class="word-card-label">원문 예문:</span>
+                  ${escapeHtml(originExample)}
+                </div>
+              ` : ''}
+              ${contextExample && contextExample !== '-' ? `
+                <div class="word-card-context">
+                  <span class="word-card-label">내 상황에서:</span>
+                  ${escapeHtml(contextExample)}
+                </div>
+              ` : ''}
+              <div class="word-card-row" style="margin-top: 4px;">
+                <span class="word-card-label">확신도:</span>
+                <span class="word-card-value" style="font-size: 0.8rem; color: var(--muted);">${escapeHtml(confidence)}</span>
+              </div>
+            </div>
+            <button class="reason-toggle-btn" data-card-index="${idx}">
+              ${isPriorityNow ? '💡 왜 지금 바로 추천?' : '📌 왜 이 단어 추천?'}
+            </button>
+            <div class="reason-content" data-card-index="${idx}">
+              <div class="word-card-reason">
+                <span class="word-card-reason-label">추천 근거:</span>
+                ${reason && reason !== '-' ? escapeHtml(reason) : '정보 없음'}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      wordCardsEl.innerHTML = html;
+
+      wordCardsEl.querySelectorAll('.reason-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const idx = parseInt(this.dataset.cardIndex);
+          const content = this.nextElementSibling;
+          const isOpen = content.classList.contains('open');
+          wordCardsEl.querySelectorAll('.reason-toggle-btn').forEach(b => {
+            b.classList.remove('open');
+            b.nextElementSibling.classList.remove('open');
+          });
+          if (!isOpen) {
+            this.classList.add('open');
+            content.classList.add('open');
+          }
+        });
+      });
+    }
+
+    // CSV 라인 파싱 (간단한 파서, RFC4180 준수 아님 — 기본 케이스용)
+    function parseCsvLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        
+        if (ch === '"') {
+          if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      
+      result.push(current.trim());
+      return result;
+    }
+
+    // HTML 이스케이프
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // CSV 다운로드
+    function downloadCsv() {
+      const csvData = downloadCsvBtn.dataset.csvData;
+      
+      if (!csvData || csvData === 'CSV 데이터를 추출하지 못했습니다.' || csvData === 'CSV 데이터를 추출하지 못했습니다.') {
+        showToast('다운로드할 CSV 데이터가 없습니다.');
+        return;
+      }
+      
+      // 파일명: vocab-YYYY-MM-DD.csv
+      const today = new Date();
+      const filename = `vocab-${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.csv`;
+      
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showToast(`${filename} 다운로드 완료`);
+    }
+
+    // 이벤트 리스너
+    generateBtn.addEventListener('click', generateVocabulary);
+    
+    downloadCsvBtn.addEventListener('click', downloadCsv);
+
+    // CSV 미리보기 접기/펼치기 (토글 기능은 아래에 별도 정의)
+    let csvCollapsed = true;
+
+    // 엔터키 제출 (textarea 아닌 input에서만)
+    profileInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        generateVocabulary();
+      }
+    });
+    knownWordsInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        generateVocabulary();
+      }
+    });
+
+    // 초기 상태 — 결과 숨김
+    resultEl.classList.add('hidden');
+
+    // CSV 미리보기 접기/펼치기 (초기화 및 이벤트)
+    function initCsvToggle() {
+      csvCollapsed = true;
+      csvPreviewEl.classList.add('collapsed');
+      updateCsvToggleUI();
+      csvToggleBtn.addEventListener('click', () => {
+        csvCollapsed = !csvCollapsed;
+        csvPreviewEl.classList.toggle('collapsed', csvCollapsed);
+        updateCsvToggleUI();
+      });
+    }
+    
+    function updateCsvToggleUI() {
+      const icon = csvToggleBtn.querySelector('.toggle-icon');
+      if (icon) {
+        icon.classList.toggle('open', !csvCollapsed);
+        icon.textContent = csvCollapsed ? '▶' : '▼';
+      }
+      csvToggleBtn.innerHTML = `
+        <span class="toggle-icon">${csvCollapsed ? '▶' : '▼'}</span>
+        ${csvCollapsed ? ' 펼치기' : ' 접기'}
+      `;
+    }
+    
+    initCsvToggle();
+  </script>
+</body>
+</html>
