@@ -24,17 +24,27 @@
       color: var(--text);
       line-height: 1.6;
       margin: 0;
-      padding: 20px;
+      padding: 40px;
     }
 
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
     }
 
     header {
       margin-bottom: 32px;
       text-align: center;
+    }
+
+    @media (min-width: 1024px) {
+      body { padding: 48px; }
+      .container { max-width: 960px; }
+    }
+
+    @media (min-width: 1440px) {
+      body { padding: 64px; }
+      .container { max-width: 1000px; }
     }
 
     h1 {
