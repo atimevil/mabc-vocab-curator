@@ -705,6 +705,9 @@
       generateBtn.disabled = true;
       document.body.classList.add('loading-active');
       generateBtn.textContent = '추출 중...';
+      sourceTextInput.readOnly = true;
+      profileInput.readOnly = true;
+      knownWordsInput.readOnly = true;
     }
 
     function hideLoading() {
@@ -712,6 +715,9 @@
       generateBtn.disabled = false;
       document.body.classList.remove('loading-active');
       generateBtn.textContent = '어휘 추출하기';
+      sourceTextInput.readOnly = false;
+      profileInput.readOnly = false;
+      knownWordsInput.readOnly = false;
     }
 
     function showResult() {
@@ -789,21 +795,51 @@
       let todayWordsLines = [];
       let inCsv = false;
       let inTodayWords = false;
+      let inProfileSection = false;
       let profileMappingLines = [];
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (trimmed.startsWith('##') || trimmed.startsWith('# ')) {
-          currentSection = trimmed.replace(/^#+\s*/, '');
-          continue;
-        }
-        if (currentSection.includes('프로필 해석') || currentSection.includes('프로필')) {
-          if (trimmed && !trimmed.startsWith('```') && !trimmed.startsWith('표제어')) {
-            profileLines.push(trimmed);
+        if (trimmed.startsWith('##')) {
+          const heading = trimmed.replace(/^##\s*/, '').trim();
+          currentSection = heading;
+          if (heading === '프로필 해석') {
+            inProfileSection = true;
+            inCsv = false;
+            inTodayWords = false;
+          } else if (heading === 'CSV') {
+            inProfileSection = false;
+            inCsv = true;
+            inTodayWords = false;
+          } else if (heading === '오늘의 3단어') {
+            inProfileSection = false;
+            inCsv = false;
+            inTodayWords = true;
+          } else {
+            inProfileSection = false;
+            inCsv = false;
+            inTodayWords = false;
           }
           continue;
         }
-        if (profileLines.length > 0 && profileMappingLines.length < 5 &&
+        if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
+          const heading = trimmed.replace(/^#\s*/, '').trim();
+          currentSection = heading;
+          if (heading === '프로필 해석') {
+            inProfileSection = true;
+            inCsv = false;
+            inTodayWords = false;
+          } else {
+            inProfileSection = false;
+            inCsv = false;
+            inTodayWords = false;
+          }
+          continue;
+        }
+        if (inProfileSection && trimmed && !trimmed.startsWith('```') && !trimmed.startsWith('표제어')) {
+          profileLines.push(trimmed);
+        }
+        if (inProfileSection && profileLines.length > 0 && profileMappingLines.length < 5 &&
             trimmed && !trimmed.startsWith('```') && !trimmed.startsWith('표제어') &&
             !trimmed.includes('오늘의 3단어') && !trimmed.includes('3단어') && !trimmed.includes('Today')) {
           if (trimmed.includes('장면') || trimmed.includes('상황') || trimmed.includes('맥락') ||
@@ -818,27 +854,20 @@
           csvLines = [trimmed];
           continue;
         }
-        if (inCsv && trimmed.startsWith('```')) {
-          inCsv = false;
-          continue;
-        }
-        if (inCsv && trimmed.startsWith('##')) {
-          inCsv = false;
-        } else if (inCsv) {
-          const isTableRow = /^\s*\|[\s|]+\|$/.test(trimmed) || (trimmed.includes('|') && trimmed.split(',').length <= 1);
-          if (isTableRow) {
-            const csvFromTable = trimmed.split('|').map(s => s.trim()).filter(s => s).join(',');
-            if (csvFromTable.split(',').length >= 2) {
-              csvLines.push(csvFromTable);
+        if (inCsv) {
+          if (trimmed.startsWith('```') || trimmed.startsWith('##')) {
+            inCsv = false;
+          } else {
+            const isTableRow = /^\s*\|[\s|]+\|$/.test(trimmed) || (trimmed.includes('|') && trimmed.split(',').length <= 1);
+            if (isTableRow) {
+              const csvFromTable = trimmed.split('|').map(s => s.trim()).filter(s => s).join(',');
+              if (csvFromTable.split(',').length >= 2) {
+                csvLines.push(csvFromTable);
+              }
+            } else if (trimmed.includes(',')) {
+              csvLines.push(trimmed);
             }
-          } else if (trimmed.includes(',')) {
-            csvLines.push(trimmed);
           }
-          continue;
-        }
-        if (trimmed.includes('오늘의 3단어') || trimmed.includes('3단어') || trimmed.includes('Today')) {
-          inTodayWords = true;
-          todayWordsLines = [];
           continue;
         }
         if (inTodayWords && trimmed && !trimmed.startsWith('```')) {
