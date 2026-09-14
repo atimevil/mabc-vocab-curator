@@ -968,9 +968,10 @@
             <div class="word-card-header">
               <h3 class="word-card-title">${escapeHtml(titleDisplay)}</h3>
               <div class="word-card-priority">
-                ${isPriorityNow ? '<span class="priority-badge">지금 바로</span>' : ''}
-                <span style="font-size: 0.75rem; color: var(--muted);">${escapeHtml(priority)}</span>
-              </div>
+              ${isPriorityNow
+              ? '<span class="priority-badge">지금 바로</span>'
+              : `<span style="font-size: 0.75rem; color: var(--muted);">${escapeHtml(priority)}</span>`}
+            </div>
             </div>
             <div class="word-card-body">
               <div class="word-card-row">
