@@ -643,6 +643,10 @@
       .word-card-priority span { display: block; margin-top: 4px; }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
 </head>
 <body>
   <div class="container">
@@ -672,7 +676,7 @@
         ></textarea>
         <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
           <label style="margin:0; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-            <input type="file" id="sourceTextFileInput" accept=".txt" style="display:none;">
+            <input type="file" id="sourceTextFileInput" accept=".txt,.pdf" style="display:none;">
             <span style="background:#e2e8f0; border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-size:0.8rem;">파일 선택</span>
             <span style="font-size:0.75rem; color:var(--muted);">.txt 파일 업로드 (선택)</span>
           </label>
@@ -1655,36 +1659,72 @@
       });
     });
     
-    sourceTextFileInput.addEventListener('change', function(e) {
+    sourceTextFileInput.addEventListener('change', async function(e) {
       const file = e.target.files && e.target.files[0];
       if (!file) {
         sourceTextFileStatus.textContent = '';
         return;
       }
-      if (!file.name.toLowerCase().endsWith('.txt')) {
-        showToast('텍스트 파일(.txt)만 업로드할 수 있어요.');
+      const lowerName = file.name.toLowerCase();
+      if (!lowerName.endsWith('.txt') && !lowerName.endsWith('.pdf')) {
+        showToast('텍스트 파일(.txt) 또는 PDF(.pdf)만 업로드할 수 있어요.');
         sourceTextFileInput.value = '';
         sourceTextFileStatus.textContent = '';
         return;
       }
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        const text = ev.target ? ev.target.result : '';
-        if (text && typeof text === 'string') {
+
+      try {
+        if (lowerName.endsWith('.pdf')) {
+          // ---- PDF: pdf.js로 브라우저에서 텍스트 추출 ----
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let extracted = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const pageText = content.items
+              .map(item => (item.str || ''))
+              .join(' ');
+            extracted += pageText + '\n';
+          }
+          const text = extracted
+            .replace(/[ \t]+/g, ' ')   // 연속 공백을 하나로
+            .replace(/ *\n */g, '\n')  // 줄바꿈 앞뒤 공백 정리
+            .trim();
+          if (!text) {
+            showToast('PDF에서 텍스트를 읽지 못했어요.');
+            sourceTextFileInput.value = '';
+            sourceTextFileStatus.textContent = '';
+            return;
+          }
           sourceTextInput.value = text;
           sourceTextFileStatus.textContent = `파일 반영: ${file.name} (${text.length}자)`;
         } else {
-          showToast('파일을 읽지 못했어요.');
-          sourceTextFileInput.value = '';
-          sourceTextFileStatus.textContent = '';
+          // ---- .txt: 기존 FileReader 방식 ----
+          const reader = new FileReader();
+          reader.onload = function(ev) {
+            const text = ev.target ? ev.target.result : '';
+            if (text && typeof text === 'string') {
+              sourceTextInput.value = text;
+              sourceTextFileStatus.textContent = `파일 반영: ${file.name} (${text.length}자)`;
+            } else {
+              showToast('파일을 읽지 못했어요.');
+              sourceTextFileInput.value = '';
+              sourceTextFileStatus.textContent = '';
+            }
+          };
+          reader.onerror = function() {
+            showToast('파일을 읽지 못했어요.');
+            sourceTextFileInput.value = '';
+            sourceTextFileStatus.textContent = '';
+          };
+          reader.readAsText(file, 'utf-8');
         }
-      };
-      reader.onerror = function() {
-        showToast('파일을 읽지 못했어요.');
+      } catch (err) {
+        showToast('파일 처리에 문제가 있었어요.');
         sourceTextFileInput.value = '';
         sourceTextFileStatus.textContent = '';
-      };
-      reader.readAsText(file, 'utf-8');
+      }
     });
     
     downloadQuizletCsvBtn.addEventListener('click', downloadQuizletCsv);
