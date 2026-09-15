@@ -748,17 +748,6 @@
           <br><span style="color: var(--muted); font-size: 0.75rem;">플레이스홀더 예시: 위 문장을 지우거나 바꿔서 사용하세요.</span></p>
       </div>
 
-      <div class="input-group">
-        <label for="profile" style="font-size:0.9rem;">내 상황 (선택)</label>
-        <input 
-          type="text" 
-          id="profile" 
-          placeholder="예: 내일 첫 shift, For here or to go? / Make that a combo? 오늘 바로 써야 함"
-          style="width:100%; padding:12px; border:1px solid var(--border); border-radius:6px; font-size:0.95rem; font-family:inherit;"
-        >
-        <p class="hint">지금 이 콘텐츠를 접하는 내 상황·한 줄 맥락을 적어 주세요. 페르소나를 선택하면 페르소나의 상황으로 자동 채워집니다.</p>
-      </div>
-
       <div class="persona-section">
         <div class="section-title" style="margin-bottom: 12px;">
           <span>페르소나</span>
@@ -947,7 +936,7 @@
           </button>
         </div>
         <div style="margin-top: 10px; padding: 10px 12px; background: #f7fafc; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; color: var(--muted); line-height: 1.4;">
-          📚 <strong>이렇게 활용하세요:</strong> Anki용은 12열 CSV(표제어/읽기/품사/뜻/원문예문/번역/내상황/말투등급/연어/확신도/왜필요한가/우선순위), Quizlet용은 Front/Back 2열이에요. 휴대폰에서 보려면 캡처하거나 PDF로 저장해도 되고, "오늘의 3단어"만 따로 저장해도 내일 바로 쓸 수 있어요.
+          📚 <strong>이렇게 활용하세요:</strong> Anki용은 12열 CSV(표제어/읽기/품사/뜻/상황예문/상황예문번역/내상황/말투등급/연어/확신도/왜필요한가/우선순위), Quizlet용은 Front/Back 2열이에요. 휴대폰에서 보려면 캡처하거나 PDF로 저장해도 되고, "오늘의 3단어"만 따로 저장해도 내일 바로 쓸 수 있어요.
         </div>
         </div>
       </div>
@@ -993,7 +982,6 @@
     const sourceTextInput = document.getElementById('sourceText');
     const sourceTextFileInput = document.getElementById('sourceTextFileInput');
     const sourceTextFileStatus = document.getElementById('sourceTextFileStatus');
-    const profileInput = document.getElementById('profile');
     const knownWordsInput = document.getElementById('knownWords');
     const extractCountInput = document.getElementById('extractCount');
     const focusWordsInput = document.getElementById('focusWords');
@@ -1056,7 +1044,6 @@
       document.body.classList.add('loading-active');
       generateBtn.textContent = '추출 중...';
       sourceTextInput.readOnly = true;
-      profileInput.readOnly = true;
       knownWordsInput.readOnly = true;
     }
 
@@ -1066,7 +1053,6 @@
       document.body.classList.remove('loading-active');
       generateBtn.textContent = '어휘 추출하기';
       sourceTextInput.readOnly = false;
-      profileInput.readOnly = false;
       knownWordsInput.readOnly = false;
     }
 
@@ -1080,9 +1066,7 @@
       const personas = loadPersonas();
       const persona = personas.find(p => p.id === currentSelectedPersonaId);
       const personaFeedback = persona ? (loadPersonaFeedback(persona.id) || '').trim() : '';
-      const profile = (persona && persona.situation && persona.situation.trim())
-        ? persona.situation.trim()
-        : profileInput.value.trim();
+      const profile = (persona && persona.situation && persona.situation.trim()) ? persona.situation.trim() : '';
       const sourceText = sourceTextInput.value.trim() || fileLoadedText.trim();
       
       if (!sourceText) {
@@ -1254,7 +1238,7 @@
             profileMappingLines.push(trimmed);
           }
         }
-        if (trimmed.replace(/["]/g, '') === '표제어,읽기,품사,뜻,원문예문,원문예문번역,상황예문,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
+        if (trimmed.replace(/["]/g, '') === '표제어,읽기,품사,뜻,상황예문,상황예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
           inCsv = true;
           csvLines = [trimmed];
           continue;
@@ -1375,10 +1359,10 @@
         const reading = card['읽기'] || '';
         const front = reading ? `${title} (${reading})` : title;
         const meaning = card['뜻'] || '';
-        const originExample = card['원문예문'] || '';
+        const situationExample = card['상황예문'] || '';
         const contextExample = card['내상황에서'] || '';
         const backParts = [meaning];
-        if (originExample) backParts.push('예문: ' + originExample);
+        if (situationExample) backParts.push('예문: ' + situationExample);
         if (contextExample) backParts.push('내 상황: ' + contextExample);
         const back = backParts.filter(Boolean).join(' | ');
         return [escapeCsvField(front), escapeCsvField(back)];
@@ -1442,9 +1426,9 @@
         const title = card['표제어'] || '표제어 없음';
         const reading = card['읽기'] || '';
         const meaning = card['뜻'] || '-';
-        const originExample = card['원문예문'] || '-';
         const contextExample = card['내상황에서'] || '-';
         const situationalExample = card['상황예문'] || '-';
+        const situationalExampleTranslation = card['상황예문번역'] || '-';
         const reason = card['왜필요한가'] || '-';
         const priority = card['우선순위'] || '-';
         const confidence = card['확신도'] || '-';
@@ -1465,16 +1449,18 @@
                 <span class="word-card-label">뜻:</span>
                 <span class="word-card-value">${escapeHtml(meaning)}</span>
               </div>
-              ${originExample && originExample !== '-' ? `
-                <div class="word-card-origin">
-                  <span class="word-card-label">원문 예문:</span>
-                  ${escapeHtml(originExample)}
-                </div>
-              ` : ''}
+
+
               ${situationalExample && situationalExample !== '-' ? `
                 <div class="word-card-context" style="border-left-color: #9f7aea; background: #faf5ff;">
                   <span class="word-card-label">상황 예문:</span>
                   ${escapeHtml(situationalExample)}
+                </div>
+              ` : ''}
+              ${situationalExampleTranslation && situationalExampleTranslation !== '-' ? `
+                <div class="word-card-context" style="border-left-color: #805ad5; background: #f3ebff;">
+                  <span class="word-card-label">상황 예문 번역:</span>
+                  ${escapeHtml(situationalExampleTranslation)}
                 </div>
               ` : ''}
               ${contextExample && contextExample !== '-' ? `
@@ -1617,7 +1603,7 @@
       const titles = [];
       for (const line of lines) {
         const trimmed = line.trim();
-        if (trimmed.replace(/[\""]/g, '') === '표제어,읽기,품사,뜻,원문예문,원문예문번역,상황예문,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
+        if (trimmed.replace(/[\""]/g, '') === '표제어,읽기,품사,뜻,상황예문,상황예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
           inCsv = true;
           continue;
         }
@@ -1674,9 +1660,20 @@
     function loadPersonas() {
       try {
         const raw = localStorage.getItem(PERSONA_KEY);
-        if (!raw) return [];
+        if (!raw) {
+          // 최초 방문: 예시 페르소나 1개를 기본으로 제공
+          const example = {
+            id: generatePersonaId(),
+            name: '버거집 카운터 알바 준비생',
+            tagline: '미국 패스트푸드점 카운터 알바 첫 출근 앞둠',
+            situation: '내일 첫 shift, For here or to go? / Make that a combo? 오늘 바로 써야 함'
+          };
+          savePersonas([example]);
+          return [example];
+        }
         const data = JSON.parse(raw);
         if (!Array.isArray(data)) return [];
+        if (data.length === 0) return [];
         return data;
       } catch (e) {
         return [];
@@ -1855,13 +1852,6 @@
         ${csvCollapsed ? ' 펼치기' : ' 접기'}
       `;
     });
-
-    profileInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        generateVocabulary();
-      }
-    });
     knownWordsInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -1872,7 +1862,7 @@
     resultEl.classList.add('hidden');
 
     // 페르소나
-    let currentSelectedPersonaId = null;
+    let currentSelectedPersonaId = loadPersonas()[0]?.id ?? null;
     let editingPersonaId = null;
 
     function renderPersonaList() {
@@ -1935,9 +1925,6 @@
       }
       document.getElementById('personaFeedbackRow').classList.remove('hidden');
       document.getElementById('personaFeedbackInput').value = loadPersonaFeedback(persona.id) || '';
-      if (persona.situation) {
-        profileInput.value = persona.situation;
-      }
     }
 
     function openPersonaEdit(id) {
