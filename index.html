@@ -972,22 +972,18 @@
 
     async function generateVocabulary() {
       hideError();
-
-      const personas = loadPersonas();
-      const persona = personas.find(p => p.id === currentSelectedPersonaId);
-      const personaFeedback = persona ? (loadPersonaFeedback(persona.id) || '').trim() : '';
-
+      
       const profile = (persona && persona.situation && persona.situation.trim())
         ? persona.situation.trim()
         : profileInput.value.trim();
       const sourceText = sourceTextInput.value.trim();
-
+      
       if (!sourceText) {
         showError('원문 텍스트를 입력해주세요.');
         sourceTextInput.focus();
         return;
       }
-
+      
       const knownWords = knownWordsInput.value.trim() || '';
       const extractCountRaw = extractCountInput.value.trim();
       const extractCount = extractCountRaw ? Math.max(1, Math.min(20, parseInt(extractCountRaw, 10) || 15)) : 15;
@@ -998,10 +994,13 @@
         const merged = Array.from(new Set([...existing, ...focusWords]));
         saveFocusWords(merged);
       }
-
+      
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === currentSelectedPersonaId);
+      const personaFeedback = persona ? (loadPersonaFeedback(persona.id) || '').trim() : '';
       const crossLangOriginal = crossLangOriginalInput.value.trim() || '';
       const crossLangContext = crossLangContextInput.value.trim() || '';
-
+      
       const extractedHistory = loadHistory()
         .filter(h => h.titles && Array.isArray(h.titles))
         .flatMap(h => h.titles);
@@ -1151,7 +1150,7 @@
             profileMappingLines.push(trimmed);
           }
         }
-        if (trimmed === '표제어,읽기,품사,뜻,원문예문,원문예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
+        if (trimmed.replace(/["]/g, '') === '표제어,읽기,품사,뜻,원문예문,원문예문번역,상황예문,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
           inCsv = true;
           csvLines = [trimmed];
           continue;
@@ -1505,7 +1504,7 @@
       const titles = [];
       for (const line of lines) {
         const trimmed = line.trim();
-        if (trimmed === '표제어,읽기,품사,뜻,원문예문,원문예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
+        if (trimmed.replace(/[\""]/g, '') === '표제어,읽기,품사,뜻,원문예문,원문예문번역,상황예문,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
           inCsv = true;
           continue;
         }
