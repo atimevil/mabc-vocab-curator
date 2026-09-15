@@ -62,7 +62,7 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 24px;
+      padding: 24px 16px;
       margin-bottom: 24px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
@@ -829,8 +829,9 @@
       </div>
 
       <div class="result-section">
-        <div class="section-title">CSV 다운로드</div>
-        <div class="csv-preview-header">
+        <div class="card">
+          <div class="section-title">CSV 다운로드</div>
+          <div class="csv-preview-header">
           <span>CSV 원본 (접어서 볼 수 있어요)</span>
           <button id="csvToggleBtn" class="csv-preview-toggle">
             <span class="toggle-icon">▶</span> 접기/펼치기
@@ -847,6 +848,7 @@
         </div>
         <div style="margin-top: 10px; padding: 10px 12px; background: #f7fafc; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; color: var(--muted); line-height: 1.4;">
           📚 <strong>이렇게 활용하세요:</strong> Anki용은 12열 CSV(표제어/읽기/품사/뜻/원문예문/번역/내상황/말투등급/연어/확신도/왜필요한가/우선순위), Quizlet용은 Front/Back 2열이에요. 휴대폰에서 보려면 캡처하거나 PDF로 저장해도 되고, "오늘의 3단어"만 따로 저장해도 내일 바로 쓸 수 있어요.
+        </div>
         </div>
       </div>
 
