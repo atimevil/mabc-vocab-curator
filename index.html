@@ -972,6 +972,9 @@
     async function generateVocabulary() {
       hideError();
       
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === currentSelectedPersonaId);
+      const personaFeedback = persona ? (loadPersonaFeedback(persona.id) || '').trim() : '';
       const profile = (persona && persona.situation && persona.situation.trim())
         ? persona.situation.trim()
         : profileInput.value.trim();
@@ -994,13 +997,10 @@
         saveFocusWords(merged);
       }
       
-      const personas = loadPersonas();
-      const persona = personas.find(p => p.id === currentSelectedPersonaId);
-      const personaFeedback = persona ? (loadPersonaFeedback(persona.id) || '').trim() : '';
       const crossLangOriginal = crossLangOriginalInput.value.trim() || '';
       const crossLangContext = crossLangContextInput.value.trim() || '';
       
-      const extractedHistory = loadHistory()
+      const extractedHistory = loadHistory(persona ? persona.id : null)
         .filter(h => h.titles && Array.isArray(h.titles))
         .flatMap(h => h.titles);
       
@@ -1043,8 +1043,8 @@
           throw new Error(data.error || '어휘 생성 실패');
         }
         
-        renderResult(data.result, sourceText, extractedHistory, focusWords);
-        saveExtractedWords(data.result);
+        renderResult(data.result, sourceText, extractedHistory, focusWords, persona ? persona.id : null);
+        saveExtractedWords(data.result, persona ? persona.id : null);
         showResult();
         
       } catch (error) {
@@ -1055,7 +1055,7 @@
       }
     }
 
-    function renderResult(rawResult, sourceText, extractedHistory, focusWords) {
+    function renderResult(rawResult, sourceText, extractedHistory, focusWords, personaId) {
       console.log('[renderResult] 호출, 원본 길이:', rawResult ? rawResult.length : 0);
       
       const cards = csvLinesToCards(rawResult ? rawResult.split('\n') : []);
@@ -1063,7 +1063,7 @@
       
       if (sourceText) {
         const sourceWords = extractSourceWords(sourceText);
-        const historyTitles = getHistoryTitles();
+        const historyTitles = getHistoryTitles(personaId);
         const covered = sourceWords.filter(w => historyTitles.has(w));
         const total = sourceWords.length;
         const coveredCount = covered.length;
@@ -1455,9 +1455,10 @@
     const HISTORY_KEY = 'vocab-history-words';
     const FOCUS_KEY = 'vocab-focus-words';
 
-    function loadHistory() {
+    function loadHistory(personaId) {
       try {
-        const raw = localStorage.getItem(HISTORY_KEY);
+        const key = HISTORY_KEY + ':' + (personaId || 'default');
+        const raw = localStorage.getItem(key);
         if (!raw) return [];
         const data = JSON.parse(raw);
         if (!Array.isArray(data)) return [];
@@ -1467,11 +1468,12 @@
       }
     }
 
-    function saveHistory(entry) {
+    function saveHistory(entry, personaId) {
       try {
-        const all = loadHistory();
+        const key = HISTORY_KEY + ':' + (personaId || 'default');
+        const all = loadHistory(personaId);
         all.push(entry);
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(all.slice(-200)));
+        localStorage.setItem(key, JSON.stringify(all.slice(-200)));
       } catch (e) {
         // 저장 실패 시 조용히 넘김
       }
@@ -1521,8 +1523,8 @@
       return titles;
     }
 
-    function getHistoryTitles() {
-      const all = loadHistory();
+    function getHistoryTitles(personaId) {
+      const all = loadHistory(personaId);
       const titles = new Set();
       for (const entry of all) {
         if (entry.titles && Array.isArray(entry.titles)) {
@@ -1541,7 +1543,7 @@
       return unique.filter(w => w.length >= 2);
     }
 
-    function saveExtractedWords(rawResult) {
+    function saveExtractedWords(rawResult, personaId) {
       const titles = getExtractedTitles(rawResult);
       if (!titles.length) return;
       const today = new Date();
@@ -1551,7 +1553,7 @@
         titles: titles,
         savedAt: new Date().toISOString()
       };
-      saveHistory(entry);
+      saveHistory(entry, personaId);
     }
 
     const PERSONA_KEY = 'vocab-personas';
