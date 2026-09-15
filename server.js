@@ -33,7 +33,7 @@ function getClient() {
   return client;
 }
 
-async function generateVocabResult(profile, sourceText, knownWords = '', extractCount = '', focusWords = [], extractedHistory = [], crossLangOriginal = '', crossLangContext = '') {
+async function generateVocabResult(profile, sourceText, knownWords = '', extractCount = '', focusWords = [], extractedHistory = [], crossLangOriginal = '', crossLangContext = '', personaFeedback = '') {
   console.log('[generateVocabResult] 호출 시작');
   console.log('[generateVocabResult] 프로필 길이:', profile.length, '| 원문 길이:', sourceText.length);
   console.log('[generateVocabResult] extractCount:', extractCount || '없음');
@@ -41,9 +41,10 @@ async function generateVocabResult(profile, sourceText, knownWords = '', extract
   console.log('[generateVocabResult] extractedHistory:', extractedHistory.length ? extractedHistory.length + '개' : '없음');
   console.log('[generateVocabResult] crossLangOriginal:', crossLangOriginal || '없음');
   console.log('[generateVocabResult] crossLangContext:', crossLangContext || '없음');
+  console.log('[generateVocabResult] personaFeedback:', personaFeedback || '없음');
   
   const client = getClient();
-  const prompt = VOCAB_CURATOR_PROMPT(profile, sourceText, knownWords, extractCount, focusWords, extractedHistory, crossLangOriginal, crossLangContext);
+  const prompt = VOCAB_CURATOR_PROMPT(profile, sourceText, knownWords, extractCount, focusWords, extractedHistory, crossLangOriginal, crossLangContext, personaFeedback);
   
   console.log('[generateVocabResult] 프롬프트 생성 완료, 길이:', prompt.length);
   console.log('[generateVocabResult] Solar Pro 4 API 호출 시작...');
@@ -100,7 +101,8 @@ app.post('/api/generate', async (req, res) => {
       focusWords || [],
       extractedHistory || [],
       crossLangOriginal || '',
-      crossLangContext || ''
+      crossLangContext || '',
+      personaFeedback || ''
     );
     
     res.json({

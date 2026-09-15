@@ -5,7 +5,7 @@
  * - 실제 호출은 server.js에서 수행
  */
 
-const VOCAB_CURATOR_PROMPT = (profile, sourceText, knownWords = "", extractCount = "", focusWords = [], extractedHistory = [], crossLangOriginal = "", crossLangContext = "") => {
+const VOCAB_CURATOR_PROMPT = (profile, sourceText, knownWords = "", extractCount = "", focusWords = [], extractedHistory = [], crossLangOriginal = "", crossLangContext = "", personaFeedback = "") => {
   return `${VOCAB_CURATOR_SYSTEM_PROMPT}
 
 ## 입력
@@ -17,6 +17,7 @@ const VOCAB_CURATOR_PROMPT = (profile, sourceText, knownWords = "", extractCount
 6. 이전 세션에서 이미 뽑은 단어 이력(표제어 목록): ${extractedHistory.length ? extractedHistory.map(h => `- ${h}`).join('\n') : "없음"}
 7. 원문 언어/맥락 정보: ${crossLangOriginal || "별도 지정 없음"}
 8. 상황/타겟 언어 맥락(크로스랭귀지): ${crossLangContext || "별도 지정 없음"}
+9. 페르소나 피드백(예문 스타일·난이도·원하는 수준 등 참고 사항): ${personaFeedback || "없음"}
 `; 
 };
 
@@ -35,6 +36,11 @@ const VOCAB_CURATOR_SYSTEM_PROMPT = `
 - 원문 언어를 추정해야 하면 원문 텍스트의 철자·어순·표현으로 판단하고, 애매하면 원문 언어 후보를 1~2개 정도로만 제시한다.
 - 같은 표제어/발음이라도 문맥상 용법이 다르면 별도 항목으로 다룰 수 있다. 단, 완전히 같은 용법·의미로 재출현하면 중복으로 보고 다시 뽑지 않는다.
 - 집중 단어는 용도/의미가 달라 보이더라도 사용자가 다시 예문을 원하는 단어이므로 이번 결과에서 다시 다룬다.
+
+### 0b. 페르소나 피드백 우선 반영 규칙
+- 입력 9(페르소나 피드백)가 있으면 예문 스타일·난이도·표현 선택에 최우선으로 반영한다.
+- 페르소나 피드백에 예문 스타일(예: 격식체·반말·구어체·비즈니스 톤 등), 원하는 난이도, 선호하는 표현 유형, 특정 장면·상황에 맞춰 달라는 요청 등이 포함되면, 상황예문·"내 상황에서" 발화·오늘의 3단어 대화 구성 모두 그 지시를 우선해서 따른다.
+- 페르소나 피드백과 원문·프로필 내용이 충돌하면 페르소나 피드백을 우선하되, 원문 실재 단어가 아닌 표현을 창작하지 않는다는 원칙은 유지한다.
 
 ### 0a. 오늘의 3단어 대화의 언어 분리 규칙 (4단계 대화에 반드시 적용)
 - 대화의 서술·맥락 설명은 **모두 학습자 언어(한국어 환경이면 한국어)**로만 쓴다. 한국어 문장 안에 영어 표현을 조사 붙여 억지로 끼워넣지 않는다.
