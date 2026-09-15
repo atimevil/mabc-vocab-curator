@@ -33,12 +33,17 @@ function getClient() {
   return client;
 }
 
-async function generateVocabResult(profile, sourceText, knownWords = '', difficultyMarks = '') {
+async function generateVocabResult(profile, sourceText, knownWords = '', extractCount = '', focusWords = [], extractedHistory = [], crossLangOriginal = '', crossLangContext = '') {
   console.log('[generateVocabResult] 호출 시작');
   console.log('[generateVocabResult] 프로필 길이:', profile.length, '| 원문 길이:', sourceText.length);
+  console.log('[generateVocabResult] extractCount:', extractCount || '없음');
+  console.log('[generateVocabResult] focusWords:', focusWords.length ? focusWords : '없음');
+  console.log('[generateVocabResult] extractedHistory:', extractedHistory.length ? extractedHistory.length + '개' : '없음');
+  console.log('[generateVocabResult] crossLangOriginal:', crossLangOriginal || '없음');
+  console.log('[generateVocabResult] crossLangContext:', crossLangContext || '없음');
   
   const client = getClient();
-  const prompt = VOCAB_CURATOR_PROMPT(profile, sourceText, knownWords, difficultyMarks);
+  const prompt = VOCAB_CURATOR_PROMPT(profile, sourceText, knownWords, extractCount, focusWords, extractedHistory, crossLangOriginal, crossLangContext);
   
   console.log('[generateVocabResult] 프롬프트 생성 완료, 길이:', prompt.length);
   console.log('[generateVocabResult] Solar Pro 4 API 호출 시작...');
@@ -72,7 +77,7 @@ app.get('/', (req, res) => {
 
 app.post('/api/generate', async (req, res) => {
   try {
-    const { profile, sourceText, knownWords, difficultyMarks } = req.body;
+    const { profile, sourceText, knownWords, extractCount, focusWords, extractedHistory, crossLangOriginal, crossLangContext, personaId, personaName, personaTagline, personaFeedback } = req.body;
     
     if (!profile || !sourceText) {
       return res.status(400).json({ 
@@ -81,11 +86,21 @@ app.post('/api/generate', async (req, res) => {
       });
     }
     
+    console.log('[api/generate] personaId:', personaId || '없음');
+    console.log('[api/generate] personaName:', personaName || '없음');
+    console.log('[api/generate] personaFeedback:', personaFeedback || '없음');
+    console.log('[api/generate] crossLangOriginal:', crossLangOriginal || '없음');
+    console.log('[api/generate] crossLangContext:', crossLangContext || '없음');
+    
     const result = await generateVocabResult(
       profile,
       sourceText,
       knownWords || '',
-      difficultyMarks || ''
+      extractCount ? String(extractCount) : '',
+      focusWords || [],
+      extractedHistory || [],
+      crossLangOriginal || '',
+      crossLangContext || ''
     );
     
     res.json({
@@ -93,7 +108,9 @@ app.post('/api/generate', async (req, res) => {
       result: result,
       meta: {
         model: 'solar-pro4',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        personaId: personaId || null,
+        personaName: personaName || null
       }
     });
   } catch (error) {

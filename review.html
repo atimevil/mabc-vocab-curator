@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vocab-curator — 오늘의 복습</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --card: #fff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --primary: #3182ce;
+      --primary-hover: #2c5282;
+      --accent: #e53e3e;
+      --ok: #2f855a;
+      --ok-bg: #f0fff4;
+      --ok-border: #9ae6b4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 6px;
+      color: var(--text);
+    }
+
+    .today-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 18px;
+      font-size: 0.9rem;
+      color: var(--primary);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      padding-bottom: 2px;
+    }
+    .back-link:hover {
+      border-bottom-color: var(--primary);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 12px;
+      color: var(--text);
+    }
+
+    .word-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .word-item:first-of-type {
+      border-top: none;
+    }
+
+    .word-check {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .word-main {
+      flex: 1;
+    }
+
+    .word-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin: 0 0 4px;
+      color: var(--text);
+    }
+
+    .word-sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .word-status {
+      margin-top: 6px;
+      font-size: 0.85rem;
+      color: var(--ok);
+    }
+
+    .reminder-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .reminder-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin: 0 0 10px;
+    }
+
+    .reminder-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .toggle-input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track {
+      width: 44px;
+      height: 24px;
+      background: #cbd5e0;
+      border-radius: 12px;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-input:checked + .toggle-track {
+      background: var(--primary);
+    }
+
+    .toggle-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+
+    .toggle-input:checked + .toggle-track .toggle-knob {
+      transform: translateX(20px);
+    }
+
+    .reminder-time-select {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: #fff;
+      font-family: inherit;
+      color: var(--text);
+    }
+
+    .reminder-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+
+    .reminder-status {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .reminder-status.active {
+      color: var(--primary);
+    }
+    .reminder-status.denied {
+      color: var(--accent);
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 24px 0;
+    }
+
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    @media (min-width: 600px) {
+      body { padding: 40px; }
+      .container { max-width: 520px; }
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 16px; }
+      .card { padding: 16px; }
+      .reminder-section { padding: 16px; }
+      .reminder-row { flex-direction: column; align-items: stretch; }
+      .toggle { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>오늘의 복습</h1>
+      <p class="today-label" id="todayLabel"></p>
+      <a class="back-link" href="index.html">원본 화면으로 돌아가기</a>
+    </header>
+
+    <div class="card">
+      <div class="section-title">오늘 바로 쓸 표현 3개</div>
+      <div id="wordsList">
+        <div class="empty-state">오늘의 표현을 아직 생성하지 않았어요.<br>원본 화면에서 어휘를 추출하면 여기에 보여요.</div>
+      </div>
+    </div>
+
+    <div class="reminder-section">
+      <p class="reminder-label">저녁 리마인드</p>
+      <div class="reminder-row">
+        <label>
+          <input type="checkbox" class="toggle-input" id="reminderToggle">
+          <span class="toggle-track"><span class="toggle-knob"></span></span>
+          <span style="font-size: 0.95rem;">오늘 알림 받기</span>
+        </label>
+        <select class="reminder-time-select" id="reminderTimeSelect">
+          <option value="21:00">저녁 9:00</option>
+          <option value="22:00">저녁 10:00</option>
+          <option value="20:30">저녁 8:30</option>
+          <option value="21:30">저녁 9:30</option>
+          <option value="22:30">저녁 10:30</option>
+        </select>
+      </div>
+      <p class="reminder-note">
+        페이지를 열어둔 상태에서 지정한 시간에 한 번 알림이 가요.<br>
+        알림을 받으려면 브라우저 권한 요청이 필요합니다.
+      </p>
+      <p class="reminder-status" id="reminderStatus">알림 설정이 꺼져 있어요.</p>
+    </div>
+
+    <div class="footer">
+      <p>vocab-curator 복습 페이지 | 오늘 날짜가 바뀌면 새 복습 페이지로 봐요</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const STORAGE_KEY = 'vocab-review-reminder';
+      const WORDS_KEY = 'vocab-review-words';
+
+      const todayLabel = document.getElementById('todayLabel');
+      const wordsList = document.getElementById('wordsList');
+      const reminderToggle = document.getElementById('reminderToggle');
+      const reminderTimeSelect = document.getElementById('reminderTimeSelect');
+      const reminderStatus = document.getElementById('reminderStatus');
+
+      const today = todayISO();
+      todayLabel.textContent = today;
+
+      function todayISO() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function loadReminder() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          const data = JSON.parse(raw);
+          return (data && data.date === today) ? data : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function saveReminder(data) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            date: today,
+            ...data
+          }));
+        } catch (e) {
+          // 저장 실패 시 조용히 넘김
+        }
+      }
+
+      function loadWords() {
+        try {
+          const raw = localStorage.getItem(WORDS_KEY);
+          if (!raw) return null;
+          const data = JSON.parse(raw);
+          return (data && data.date === today) ? data.words : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function saveWords(words) {
+        try {
+          localStorage.setItem(WORDS_KEY, JSON.stringify({
+            date: today,
+            words: words
+          }));
+        } catch (e) {
+          // 저장 실패 시 조용히 넘김
+        }
+      }
+
+      function renderWords() {
+        const words = loadWords();
+        if (!words || !Array.isArray(words) || words.length === 0) {
+          wordsList.innerHTML = '<div class="empty-state">오늘의 표현을 아직 생성하지 않았어요.<br>원본 화면에서 어휘를 추출하면 여기에 보여요.</div>';
+          return;
+        }
+        const html = words.map((w, i) => {
+          const checked = w.checked ? 'checked' : '';
+          const statusHtml = w.checked
+            ? '<div class="word-status">오늘 써봤어요 ✓</div>'
+            : '';
+          return `
+            <div class="word-item" data-index="${i}">
+              <label class="word-check">
+                <input type="checkbox" class="toggle-input word-checkbox" data-index="${i}" ${checked}>
+                <span class="toggle-track"><span class="toggle-knob"></span></span>
+              </label>
+              <div class="word-main">
+                <p class="word-title">${escapeHtml(w.title || '표제어')}</p>
+                <p class="word-sub">${escapeHtml(w.sub || '')}</p>
+                ${statusHtml}
+              </div>
+            </div>
+          `;
+        }).join('');
+        wordsList.innerHTML = html;
+
+        wordsList.querySelectorAll('.word-checkbox').forEach(cb => {
+          cb.addEventListener('change', function() {
+            const idx = parseInt(this.dataset.index, 10);
+            const current = loadWords() || [];
+            current[idx] = Object.assign({}, current[idx], {
+              checked: this.checked
+            });
+            saveWords(current);
+          });
+        });
+      }
+
+      function escapeHtml(text) {
+        if (text == null) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      let reminderTimer = null;
+
+      function parseTimeToMinutes(value) {
+        const parts = value.split(':');
+        if (parts.length !== 2) return null;
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) return null;
+        return h * 60 + m;
+      }
+
+      function clearReminder() {
+        if (reminderTimer) {
+          clearTimeout(reminderTimer);
+          reminderTimer = null;
+        }
+      }
+
+      function scheduleReminder() {
+        clearReminder();
+        if (!reminderToggle.checked) {
+          reminderStatus.textContent = '알림 설정이 꺼져 있어요.';
+          reminderStatus.className = 'reminder-status';
+          return;
+        }
+
+        if (!Notification) {
+          reminderStatus.textContent = '이 브라우저에서는 알림을 지원하지 않아요.';
+          reminderStatus.className = 'reminder-status denied';
+          return;
+        }
+
+        if (Notification.permission === 'denied') {
+          reminderStatus.textContent = '알림 권한이 거부돼서 알림을 보낼 수 없어요. 브라우저 설정에서 권한을 허용해 주세요.';
+          reminderStatus.className = 'reminder-status denied';
+          reminderToggle.checked = false;
+          saveReminder({ enabled: false, time: reminderTimeSelect.value });
+          return;
+        }
+
+        if (Notification.permission === 'granted') {
+          const now = new Date();
+          const targetMinutes = parseTimeToMinutes(reminderTimeSelect.value);
+          if (targetMinutes == null) {
+            reminderStatus.textContent = '시간을 다시 선택해 주세요.';
+            reminderStatus.className = 'reminder-status';
+            return;
+          }
+
+          const target = new Date(now);
+          target.setHours(Math.floor(targetMinutes / 60), targetMinutes % 60, 0, 0);
+
+          if (target <= now) {
+            reminderStatus.textContent = '오늘 설정 시간은 이미 지났어요. 내일 다시 열어 주세요.';
+            reminderStatus.className = 'reminder-status';
+            reminderToggle.checked = false;
+            saveReminder({ enabled: false, time: reminderTimeSelect.value });
+            return;
+          }
+
+          const delay = target - now;
+          reminderTimer = setTimeout(() => {
+            if (Notification.permission === 'granted') {
+              const words = loadWords() || [];
+              let body = 'vocab-curator 오늘의 복습';
+              if (words.length > 0) {
+                const unchecked = words.filter(w => !w.checked);
+                if (unchecked.length > 0) {
+                  const titles = unchecked.map(w => w.title).filter(Boolean).slice(0, 3).join(', ');
+                  body = `아직 체크 안 한 표현: ${titles}`;
+                } else {
+                  body = '오늘 표현은 다 체크했어요. 수고했어요!';
+                }
+              }
+              new Notification(' vocab-curator 오늘의 복습', {
+                body: body,
+                icon: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2216%22 fill=%22%233182ce%22/%3E%3Ctext x=%2250%22 y=%2262%22 font-size=%2244%22 text-anchor=%22middle%22 fill=%22%23fff%22 font-family=%22sans-serif%22%3EV%3C/text%3E%3C/svg%3E'
+              });
+            }
+            reminderStatus.textContent = '알림이 발송되었어요.';
+            reminderStatus.className = 'reminder-status';
+          }, delay);
+
+          const hh = String(target.getHours()).padStart(2, '0');
+          const mm = String(target.getMinutes()).padStart(2, '0');
+          reminderStatus.textContent = `오늘 ${hh}:${mm}에 알림을 예약했어요. (페이지를 열어둔 상태에서만 알림이 가요)`;
+          reminderStatus.className = 'reminder-status active';
+          saveReminder({ enabled: true, time: reminderTimeSelect.value });
+        } else {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              scheduleReminder();
+            } else {
+              reminderStatus.textContent = '알림 권한이 거부돼서 알림을 보낼 수 없어요.';
+              reminderStatus.className = 'reminder-status denied';
+              reminderToggle.checked = false;
+              saveReminder({ enabled: false, time: reminderTimeSelect.value });
+            }
+          });
+        }
+      }
+
+      function init() {
+        const saved = loadReminder();
+        if (saved && saved.enabled && saved.time) {
+          reminderToggle.checked = true;
+          reminderTimeSelect.value = saved.time;
+          scheduleReminder();
+        } else {
+          reminderStatus.textContent = '알림 설정이 꺼져 있어요.';
+          reminderStatus.className = 'reminder-status';
+        }
+
+        reminderToggle.addEventListener('change', scheduleReminder);
+        reminderTimeSelect.addEventListener('change', scheduleReminder);
+
+        renderWords();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

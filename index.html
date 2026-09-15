@@ -474,6 +474,107 @@
       display: none;
     }
 
+    .persona-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .persona-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .persona-card {
+      background: #f7fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      min-width: 120px;
+    }
+
+    .persona-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 1px 3px rgba(49,130,206,0.1);
+    }
+
+    .persona-card.selected {
+      border-color: var(--primary);
+      background: #ebf8ff;
+    }
+
+    .persona-card-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin: 0 0 2px;
+      line-height: 1.3;
+    }
+
+    .persona-card-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .persona-card-actions {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .persona-card-action {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 1px 5px;
+      font-size: 0.7rem;
+      border-radius: 3px;
+      cursor: pointer;
+      line-height: 1.4;
+    }
+
+    .persona-card-action:hover {
+      color: var(--text);
+      border-color: var(--text);
+    }
+
+    .persona-empty {
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding: 6px 0;
+    }
+
+    .persona-feedback-row {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .persona-feedback-row label {
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .persona-feedback-row textarea {
+      padding: 8px 10px;
+      font-size: 0.85rem;
+    }
+
+    .persona-feedback-row .hint {
+      margin-top: 6px;
+    }
+
     .toast {
       position: fixed;
       bottom: 20px;
@@ -605,6 +706,49 @@
         <p class="hint">이미 아는 단어를 제외할 때 사용합니다. 없으면 스킵해도 됩니다.</p>
       </div>
 
+      <div class="input-group">
+        <label for="extractCount">추출할 단어 개수 (선택)</label>
+        <input 
+          type="number" 
+          id="extractCount" 
+          min="1" 
+          max="20" 
+          value="15"
+        >
+        <p class="hint">한 번에 뽑을 단어 수를 지정합니다. 최대 20개까지 가능하며, 너무 많으면 추출 속도가 체감될 수 있습니다.</p>
+      </div>
+
+      <div class="input-group">
+        <label for="focusWords">집중 단어 (선택, 콤마로 구분)</label>
+        <input 
+          type="text" 
+          id="focusWords" 
+          placeholder="예: for here or to go, make that a combo"
+        >
+        <p class="hint">특별히 예문을 다시 보고 싶은 단어를 넣습니다. 이미 뽑은 단어여도 집중 단어는 예문 생성을 다시 시도할 수 있습니다.</p>
+      </div>
+
+      <div class="persona-section">
+        <div class="section-title" style="margin-bottom: 12px;">
+          <span>페르소나</span>
+          <button id="addPersonaBtn" type="button" style="padding: 4px 10px; font-size: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">추가</button>
+        </div>
+        <div id="personaList" class="persona-list"></div>
+        <div id="personaFeedbackRow" class="persona-feedback-row hidden">
+          <label for="personaFeedbackInput">페르소나 피드백</label>
+          <textarea 
+            id="personaFeedbackInput" 
+            rows="2" 
+            placeholder="예: 이런 형식의 예문 좋았어, N2 레벨 단어 위주로, 조금 더 쉬운 예문"
+          ></textarea>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button id="savePersonaFeedbackBtn" type="button" style="padding: 8px 14px; font-size: 0.85rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">피드백 저장</button>
+            <button id="clearPersonaFeedbackBtn" type="button" style="padding: 8px 14px; font-size: 0.85rem; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">피드백 지우기</button>
+          </div>
+          <p class="hint">이 페르소나로 뽑을 때 참고할 피드백을 남겨둘 수 있어요. 예문 스타일, 난이도, 원하는 수준 같은 내용을 적으면 됩니다.</p>
+        </div>
+      </div>
+
       <button id="generateBtn" type="button">어휘 추출하기</button>
       <p class="hint" style="margin-top: 12px;">결과는 Solar Pro 4 API를 통해 생성됩니다. API 키는 서버에서 관리합니다.</p>
     </div>
@@ -616,6 +760,42 @@
     <div id="error" class="error hidden"></div>
 
     <div id="result" class="hidden">
+      <div class="result-section">
+        <div class="section-title">
+          <span>커버리지</span>
+          <span id="coverageValue" class="word-count"></span>
+        </div>
+        <div id="coverageBox" class="profile-interpretation" style="margin-bottom: 16px;"></div>
+      </div>
+
+      <div class="result-section">
+        <div class="section-title">
+          <span>원문 언어/맥락</span>
+          <span class="word-count"></span>
+        </div>
+        <div class="card" style="padding: 12px 16px;">
+          <div style="display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 160px;">
+              <label for="crossLangOriginalInput" style="font-size: 0.85rem;">원문 언어/맥락 (선택)</label>
+              <input 
+                type="text" 
+                id="crossLangOriginalInput" 
+                placeholder="예: 원문 영어, 카페 브이로그 자막"
+              >
+            </div>
+            <div style="flex: 1; min-width: 160px;">
+              <label for="crossLangContextInput" style="font-size: 0.85rem;">상황/타겟 언어 맥락 (선택)</label>
+              <input 
+                type="text" 
+                id="crossLangContextInput" 
+                placeholder="예: 상황은 일본어, 설명은 한국어"
+              >
+            </div>
+          </div>
+          <p class="hint" style="margin-top: 6px;">원문과 상황/설명 언어가 다를 때 이 정보를 넣으면 단어 표기와 설명 언어를 더 일관되게 맞출 수 있어요. 예를 들어 원문은 영어인데 상황이 일본어 맥락이거나, 설명만 한국어로 보고 싶은 경우 등에 써요.</p>
+        </div>
+      </div>
+
       <div class="result-section">
         <div class="section-title">프로필 해석</div>
         <div id="profileInterpretation" class="profile-interpretation"></div>
@@ -649,7 +829,7 @@
       </div>
 
       <div class="result-section">
-        <div class="section-title">Anki CSV 다운로드</div>
+        <div class="section-title">CSV 다운로드</div>
         <div class="csv-preview-header">
           <span>CSV 원본 (접어서 볼 수 있어요)</span>
           <button id="csvToggleBtn" class="csv-preview-toggle">
@@ -657,13 +837,16 @@
           </button>
         </div>
         <div id="csvPreview" class="csv-preview"></div>
-        <button id="downloadCsvBtn" class="download-btn" style="margin-top: 12px;">
-          <span>📥</span> CSV 다운로드 (vocab-YYYY-MM-DD.csv)
-        </button>
-        <div style="margin-top: 10px; padding: 10px 12px; background: #f7fafc; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; color: var(--muted); line-height: 1.4;">
-          📚 <strong>이렇게 활용하세요:</strong> 다운로드한 CSV를 Anki에 임포트하면 이대로 단어장이 돼요. 휴대폰에서 보려면 캡처하거나 PDF로 저장해도 되고, "오늘의 3단어"만 따로 저장해도 내일 바로 쓸 수 있어요.
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px;">
+          <button id="downloadAnkiCsvBtn" class="download-btn" style="flex: 1; min-width: 200px;">
+            <span>📥</span> CSV 다운로드 (Anki용, 12열)
+          </button>
+          <button id="downloadQuizletCsvBtn" class="download-btn" style="flex: 1; min-width: 200px;">
+            <span>📥</span> Quizlet용 CSV 다운로드 (Front/Back 2열)
+          </button>
         </div>
-          휴대폰에서 보려면 캡처하거나 PDF로 저장해도 되고, "오늘의 3단어"만 따로 저장해도 내일 바로 쓸 수 있어요.
+        <div style="margin-top: 10px; padding: 10px 12px; background: #f7fafc; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; color: var(--muted); line-height: 1.4;">
+          📚 <strong>이렇게 활용하세요:</strong> Anki용은 12열 CSV(표제어/읽기/품사/뜻/원문예문/번역/내상황/말투등급/연어/확신도/왜필요한가/우선순위), Quizlet용은 Front/Back 2열이에요. 휴대폰에서 보려면 캡처하거나 PDF로 저장해도 되고, "오늘의 3단어"만 따로 저장해도 내일 바로 쓸 수 있어요.
         </div>
       </div>
 
@@ -679,6 +862,10 @@
     const sourceTextInput = document.getElementById('sourceText');
     const profileInput = document.getElementById('profile');
     const knownWordsInput = document.getElementById('knownWords');
+    const extractCountInput = document.getElementById('extractCount');
+    const focusWordsInput = document.getElementById('focusWords');
+    const crossLangOriginalInput = document.getElementById('crossLangOriginalInput');
+    const crossLangContextInput = document.getElementById('crossLangContextInput');
     const generateBtn = document.getElementById('generateBtn');
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
@@ -686,10 +873,13 @@
     const profileInterpretationEl = document.getElementById('profileInterpretation');
     const wordCardsEl = document.getElementById('wordCards');
     const wordCardsEmptyEl = document.getElementById('wordCardsEmpty');
+    const coverageBox = document.getElementById('coverageBox');
+    const coverageValue = document.getElementById('coverageValue');
     const todayWordsEl = document.getElementById('todayWords');
     const csvPreviewEl = document.getElementById('csvPreview');
     const csvToggleBtn = document.getElementById('csvToggleBtn');
-    const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+    const downloadQuizletCsvBtn = document.getElementById('downloadQuizletCsvBtn');
+    const downloadAnkiCsvBtn = document.getElementById('downloadAnkiCsvBtn');
     const toastEl = document.getElementById('toast');
 
     let foldOpen = true;
@@ -747,6 +937,25 @@
       }
       
       const knownWords = knownWordsInput.value.trim() || '';
+      const extractCountRaw = extractCountInput.value.trim();
+      const extractCount = extractCountRaw ? Math.max(1, Math.min(20, parseInt(extractCountRaw, 10) || 15)) : 15;
+      const focusWordsRaw = focusWordsInput.value.trim() || '';
+      const focusWords = focusWordsRaw ? focusWordsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+      if (focusWords.length) {
+        const existing = loadFocusWords();
+        const merged = Array.from(new Set([...existing, ...focusWords]));
+        saveFocusWords(merged);
+      }
+      
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === currentSelectedPersonaId);
+      const personaFeedback = persona ? (loadPersonaFeedback(persona.id) || '').trim() : '';
+      const crossLangOriginal = crossLangOriginalInput.value.trim() || '';
+      const crossLangContext = crossLangContextInput.value.trim() || '';
+      
+      const extractedHistory = loadHistory()
+        .filter(h => h.titles && Array.isArray(h.titles))
+        .flatMap(h => h.titles);
       
       showLoading();
       
@@ -757,7 +966,16 @@
           body: JSON.stringify({
             profile: profile,
             sourceText: sourceText,
-            knownWords: knownWords
+            knownWords: knownWords,
+            extractCount: extractCount,
+            focusWords: focusWords,
+            extractedHistory: extractedHistory,
+            personaId: persona ? persona.id : null,
+            personaName: persona ? persona.name : null,
+            personaTagline: persona ? persona.tagline : null,
+            personaFeedback: personaFeedback,
+            crossLangOriginal: crossLangOriginal,
+            crossLangContext: crossLangContext
           })
         });
         
@@ -778,7 +996,8 @@
           throw new Error(data.error || '어휘 생성 실패');
         }
         
-        renderResult(data.result);
+        renderResult(data.result, sourceText, extractedHistory, focusWords);
+        saveExtractedWords(data.result);
         showResult();
         
       } catch (error) {
@@ -789,7 +1008,31 @@
       }
     }
 
-    function renderResult(rawResult) {
+    function renderResult(rawResult, sourceText, extractedHistory, focusWords) {
+      console.log('[renderResult] 호출, 원본 길이:', rawResult ? rawResult.length : 0);
+      
+      const cards = csvLinesToCards(rawResult ? rawResult.split('\n') : []);
+      const extractedTitles = cards.map(c => (c['표제어'] || '').trim()).filter(Boolean);
+      
+      if (sourceText) {
+        const sourceWords = extractSourceWords(sourceText);
+        const historyTitles = getHistoryTitles();
+        const covered = sourceWords.filter(w => historyTitles.has(w));
+        const total = sourceWords.length;
+        const coveredCount = covered.length;
+        const percent = total > 0 ? Math.round((coveredCount / total) * 100) : 0;
+        coverageValue.textContent = `${coveredCount}/${total} (${percent}%)`;
+        coverageBox.innerHTML = `
+          <p style="margin: 0 0 6px;">이 글의 단어 중 <strong>이미 생성 이력이 있는 단어</strong>는 ${coveredCount}개예요.</p>
+          <p style="margin: 0; color: var(--muted); font-size: 0.85rem;">전체 ${total}개 중 ${percent}%가 이미 뽑힌 적이 있어요.</p>
+          ${coveredCount > 0 ? `<p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--muted);">이력에 있는 단어: ${escapeHtml(covered.slice(0, 20).join(', '))}${covered.length > 20 ? ' …' : ''}
+          </p>` : '<p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--muted);">아직 이 글에서 새로 뽑은 단어가 없어요.</p>'}
+        `;
+      } else {
+        coverageValue.textContent = '';
+        coverageBox.innerHTML = '';
+      }
+
       console.log('[renderResult] 호출, 원본 길이:', rawResult ? rawResult.length : 0);
       
       // 폴백: rawResult가 비어있거나 null이면 빈 문자열로
@@ -909,12 +1152,18 @@
         profileInterpretationEl.appendChild(mappingEl);
       }
 
-      if (csvLines.length > 1) {
-        const cards = csvLinesToCards(csvLines);
-        renderWordCards(cards);
+      const parsedCards = csvLinesToCards(csvLines);
+      const focusSet = new Set((focusWords || []).map(f => f.toLowerCase().trim()));
+      const filteredCards = filterCardsByHistory(parsedCards, extractedHistory, focusSet);
+      if (filteredCards.length > 0) {
+        renderWordCards(filteredCards);
+        renderCsvPreviewAndDownload(filteredCards, csvLines.join('\n'));
       } else {
         wordCardsEl.classList.add('hidden');
         wordCardsEmptyEl.classList.remove('hidden');
+        csvPreviewEl.textContent = '';
+        downloadQuizletCsvBtn.dataset.csvData = '';
+        downloadAnkiCsvBtn.dataset.csvData = '';
       }
 
       if (todayWordsLines.length > 0) {
@@ -925,26 +1174,76 @@
       } else {
         todayWordsEl.innerHTML = '<p>오늘의 3단어를 파싱하지 못했어요.</p>';
       }
+    }
 
-      const csvRaw = csvLines.join('\n');
-      csvPreviewEl.textContent = csvRaw || 'CSV 데이터를 추출하지 못했어요.';
-      downloadCsvBtn.dataset.csvData = csvRaw || '';
+    function filterCardsByHistory(cards, extractedHistory, focusSet) {
+      const historySet = new Set(extractedHistory.map(h => h.toLowerCase().trim()));
+      return cards.filter(c => {
+        const title = (c['표제어'] || '').toLowerCase().trim();
+        return !historySet.has(title) || focusSet.has(title);
+      });
     }
 
     function csvLinesToCards(lines) {
       if (lines.length < 2) return [];
       const headers = parseCsvLine(lines[0]);
+      const headerCount = headers.length;
+      if (headerCount === 0) return [];
       const cards = [];
       for (let i = 1; i < lines.length; i++) {
-        const row = parseCsvLine(lines[i]);
-        if (row.length < headers.length) continue;
+        const raw = lines[i];
+        const row = parseCsvLine(raw);
+        if (row.length < 1) continue;
+        if (row.length !== headerCount) {
+          console.warn('[csvLinesToCards] 열 개수 불일치, 행 스킵:', raw);
+          continue;
+        }
         const card = {};
-        for (let j = 0; j < headers.length; j++) {
-          card[headers[j]] = row[j] || '';
+        for (let j = 0; j < headerCount; j++) {
+          card[headers[j]] = (row[j] || '').trim();
         }
         cards.push(card);
       }
       return cards;
+    }
+
+    function buildQuizletCsv(cards) {
+      const header = 'Front,Back';
+      const rows = cards.map(card => {
+        const title = card['표제어'] || '';
+        const reading = card['읽기'] || '';
+        const front = reading ? `${title} (${reading})` : title;
+        const meaning = card['뜻'] || '';
+        const originExample = card['원문예문'] || '';
+        const contextExample = card['내상황에서'] || '';
+        const backParts = [meaning];
+        if (originExample) backParts.push('예문: ' + originExample);
+        if (contextExample) backParts.push('내 상황: ' + contextExample);
+        const back = backParts.filter(Boolean).join(' | ');
+        return [escapeCsvField(front), escapeCsvField(back)];
+      });
+      return [header, ...rows].join('\n');
+    }
+
+    function escapeCsvField(value) {
+      const str = String(value == null ? '' : value);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    }
+
+    function renderCsvPreviewAndDownload(cards, rawCsvLines) {
+      const quizletCsv = buildQuizletCsv(cards);
+      csvPreviewEl.textContent = quizletCsv;
+      downloadQuizletCsvBtn.dataset.csvData = quizletCsv;
+      downloadAnkiCsvBtn.dataset.csvData = rawCsvLines || '';
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === currentSelectedPersonaId);
+      downloadQuizletCsvBtn.dataset.personaId = persona ? persona.id : '';
+      downloadAnkiCsvBtn.dataset.personaId = persona ? persona.id : '';
+      downloadQuizletCsvBtn.dataset.personaName = persona ? (persona.name || '') : '';
+      downloadAnkiCsvBtn.dataset.personaName = persona ? (persona.name || '') : '';
     }
 
     function renderWordCards(cards) {
@@ -1069,18 +1368,186 @@
       return div.innerHTML;
     }
 
-    function downloadCsv() {
-      const csvData = downloadCsvBtn.dataset.csvData;
+    function escapeAttr(value) {
+      if (value == null) return '';
+      return String(value).replace(/[&<>"']/g, function(ch) {
+        if (ch === '&') return '&amp;';
+        if (ch === '<') return '&lt;';
+        if (ch === '>') return '&gt;';
+        if (ch === '"') return '&quot;';
+        if (ch === "'") return '&#39;';
+        return ch;
+      });
+    }
+
+    const HISTORY_KEY = 'vocab-history-words';
+    const FOCUS_KEY = 'vocab-focus-words';
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data)) return [];
+        return data;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveHistory(entry) {
+      try {
+        const all = loadHistory();
+        all.push(entry);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(all.slice(-200)));
+      } catch (e) {
+        // 저장 실패 시 조용히 넘김
+      }
+    }
+
+    function loadFocusWords() {
+      try {
+        const raw = localStorage.getItem(FOCUS_KEY);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data)) return [];
+        return data;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveFocusWords(words) {
+      try {
+        localStorage.setItem(FOCUS_KEY, JSON.stringify(words.slice(0, 100)));
+      } catch (e) {
+        // 저장 실패 시 조용히 넘김
+      }
+    }
+
+    function getExtractedTitles(rawResult) {
+      const lines = rawResult.split('\n');
+      let inCsv = false;
+      const titles = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed === '표제어,읽기,품사,뜻,원문예문,원문예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
+          inCsv = true;
+          continue;
+        }
+        if (inCsv) {
+          if (trimmed.startsWith('```') || trimmed.startsWith('##')) {
+            inCsv = false;
+            continue;
+          }
+          const row = parseCsvLine(trimmed);
+          if (row.length > 0 && row[0]) {
+            titles.push(row[0].trim());
+          }
+        }
+      }
+      return titles;
+    }
+
+    function getHistoryTitles() {
+      const all = loadHistory();
+      const titles = new Set();
+      for (const entry of all) {
+        if (entry.titles && Array.isArray(entry.titles)) {
+          for (const t of entry.titles) {
+            if (t) titles.add(t.trim().toLowerCase());
+          }
+        }
+      }
+      return titles;
+    }
+
+    function extractSourceWords(text) {
+      const tokens = text.toLowerCase().match(/[a-z][a-z0-9']*/g);
+      if (!tokens) return [];
+      const unique = Array.from(new Set(tokens));
+      return unique.filter(w => w.length >= 2);
+    }
+
+    function saveExtractedWords(rawResult) {
+      const titles = getExtractedTitles(rawResult);
+      if (!titles.length) return;
+      const today = new Date();
+      const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const entry = {
+        date: dayKey,
+        titles: titles,
+        savedAt: new Date().toISOString()
+      };
+      saveHistory(entry);
+    }
+
+    const PERSONA_KEY = 'vocab-personas';
+    const PERSONA_FEEDBACK_KEY = 'vocab-persona-feedback';
+
+    function loadPersonas() {
+      try {
+        const raw = localStorage.getItem(PERSONA_KEY);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data)) return [];
+        return data;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function savePersonas(personas) {
+      try {
+        localStorage.setItem(PERSONA_KEY, JSON.stringify(personas.slice(0, 50)));
+      } catch (e) {
+        // 저장 실패 시 조용히 넘김
+      }
+    }
+
+    function loadPersonaFeedback(personaId) {
+      try {
+        const raw = localStorage.getItem(PERSONA_FEEDBACK_KEY);
+        if (!raw) return '';
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== 'object') return '';
+        return data[personaId] || '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function savePersonaFeedback(personaId, text) {
+      try {
+        const raw = localStorage.getItem(PERSONA_FEEDBACK_KEY);
+        const data = raw ? (JSON.parse(raw) || {}) : {};
+        if (typeof data !== 'object') return;
+        data[personaId] = text;
+        localStorage.setItem(PERSONA_FEEDBACK_KEY, JSON.stringify(data));
+      } catch (e) {
+        // 저장 실패 시 조용히 넘김
+      }
+    }
+
+    function generatePersonaId() {
+      return 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+    }
+
+    function downloadCsvByButton(btn, label) {
+      const csvData = btn.dataset.csvData;
+      const personaName = btn.dataset.personaName || '';
       
-      if (!csvData || csvData === 'CSV 데이터를 추출하지 못했습니다.' || csvData === 'CSV 데이터를 추출하지 못했습니다.') {
+      if (!csvData || csvData === '') {
         showToast('다운로드할 CSV 데이터가 없습니다.');
         return;
       }
       
       const today = new Date();
-      const filename = `vocab-${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.csv`;
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const safeName = (personaName || '').trim().replace(/[^0-9A-Za-z가-힣_\s-]/g, '').slice(0, 20).replace(/\s+/g, '-');
+      const filename = safeName ? `vocab-${dateStr}-${safeName}.csv` : `vocab-${dateStr}.csv`;
       
-      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(['﻿' + csvData], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
@@ -1091,13 +1558,22 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      showToast(`${filename} 다운로드 완료`);
+      showToast(`${filename} 다운로드 완료 (${label})`);
+    }
+
+    function downloadQuizletCsv() {
+      downloadCsvByButton(downloadQuizletCsvBtn, 'Front/Back 2열');
+    }
+
+    function downloadAnkiCsv() {
+      downloadCsvByButton(downloadAnkiCsvBtn, '12열 Anki용');
     }
 
     // 이벤트 리스너
     generateBtn.addEventListener('click', generateVocabulary);
     
-    downloadCsvBtn.addEventListener('click', downloadCsv);
+    downloadQuizletCsvBtn.addEventListener('click', downloadQuizletCsv);
+    downloadAnkiCsvBtn.addEventListener('click', downloadAnkiCsv);
 
     let csvCollapsed = true;
     csvToggleBtn.addEventListener('click', () => {
@@ -1125,6 +1601,144 @@
     });
 
     resultEl.classList.add('hidden');
+
+    // 페르소나
+    let currentSelectedPersonaId = null;
+
+    function renderPersonaList() {
+      const list = document.getElementById('personaList');
+      const personas = loadPersonas();
+      if (!personas.length) {
+        list.innerHTML = '<div class="persona-empty">저장된 페르소나가 없어요. 추가 버튼을 눌러 먼저 만들어 보세요.</div>';
+        document.getElementById('personaFeedbackRow').classList.add('hidden');
+        return;
+      }
+      list.innerHTML = personas.map(p => {
+        const selected = p.id === currentSelectedPersonaId ? 'selected' : '';
+        const short = (p.name || '페르소나') .slice(0, 40);
+        return `
+          <div class="persona-card ${selected}" data-persona-id="${escapeAttr(p.id)}">
+            <div class="persona-card-title">${escapeHtml(short)}</div>
+            <div class="persona-card-meta">${escapeHtml((p.tagline || '') .slice(0, 60))}</div>
+            <div class="persona-card-actions">
+              <button class="persona-card-action edit-persona" data-persona-id="${escapeAttr(p.id)}">수정</button>
+              <button class="persona-card-action delete-persona" data-persona-id="${escapeAttr(p.id)}">삭제</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      list.querySelectorAll('.persona-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+          if (e.target.closest('.persona-card-action')) return;
+          const id = this.dataset.personaId;
+          selectPersona(id);
+        });
+      });
+      list.querySelectorAll('.edit-persona').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const id = this.dataset.personaId;
+          openPersonaEdit(id);
+        });
+      });
+      list.querySelectorAll('.delete-persona').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const id = this.dataset.personaId;
+          deletePersona(id);
+        });
+      });
+    }
+
+    function selectPersona(id) {
+      currentSelectedPersonaId = id;
+      renderPersonaList();
+      applySelectedPersona();
+    }
+
+    function applySelectedPersona() {
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === currentSelectedPersonaId);
+      if (!persona) {
+        document.getElementById('personaFeedbackRow').classList.add('hidden');
+        return;
+      }
+      document.getElementById('personaFeedbackRow').classList.remove('hidden');
+      document.getElementById('personaFeedbackInput').value = loadPersonaFeedback(persona.id) || '';
+    }
+
+    function openPersonaEdit(id) {
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === id);
+      if (!persona) return;
+      if (confirm(`페르소나 "${persona.name || '이름 없음'}"를 수정하시겠어요?`)) {
+        const newName = prompt('페르소나 이름:', persona.name || '');
+        if (newName == null) return;
+        const newTagline = prompt('한 줄 설명(선택):', persona.tagline || '');
+        if (newTagline == null) return;
+        const updated = personas.map(p => p.id === id ? { ...p, name: newName || p.name, tagline: newTagline || p.tagline } : p);
+        savePersonas(updated);
+        renderPersonaList();
+        applySelectedPersona();
+      }
+    }
+
+    function deletePersona(id) {
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === id);
+      if (!persona) return;
+      if (confirm(`페르소나 "${persona.name || '이름 없음'}"를 삭제하시겠어요?`)) {
+        const updated = personas.filter(p => p.id !== id);
+        savePersonas(updated);
+        if (currentSelectedPersonaId === id) {
+          currentSelectedPersonaId = null;
+        }
+        renderPersonaList();
+        applySelectedPersona();
+      }
+    }
+
+    function addPersona() {
+      const name = prompt('페르소나 이름:', '');
+      if (name == null || !name.trim()) return;
+      const tagline = prompt('한 줄 설명(선택):', '');
+      if (tagline == null) return;
+      const personas = loadPersonas();
+      const newPersona = {
+        id: generatePersonaId(),
+        name: name.trim(),
+        tagline: tagline ? tagline.trim() : ''
+      };
+      personas.push(newPersona);
+      savePersonas(personas);
+      currentSelectedPersonaId = newPersona.id;
+      renderPersonaList();
+      applySelectedPersona();
+    }
+
+    document.getElementById('addPersonaBtn').addEventListener('click', addPersona);
+    document.getElementById('savePersonaFeedbackBtn').addEventListener('click', function() {
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === currentSelectedPersonaId);
+      if (!persona) {
+        showToast('피드백을 저장할 페르소나를 먼저 선택해 주세요.');
+        return;
+      }
+      const text = document.getElementById('personaFeedbackInput').value;
+      savePersonaFeedback(persona.id, text);
+      showToast('피드백이 저장됐어요.');
+    });
+    document.getElementById('clearPersonaFeedbackBtn').addEventListener('click', function() {
+      const personas = loadPersonas();
+      const persona = personas.find(p => p.id === currentSelectedPersonaId);
+      if (!persona) return;
+      savePersonaFeedback(persona.id, '');
+      document.getElementById('personaFeedbackInput').value = '';
+      showToast('피드백이 지워졌어요.');
+    });
+
+    renderPersonaList();
+    applySelectedPersona();
   </script>
 </body>
 </html>
