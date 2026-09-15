@@ -642,6 +642,67 @@
       .word-card-priority { align-self: flex-start; }
       .word-card-priority span { display: block; margin-top: 4px; }
     }
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.hidden { display: none; }
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      margin: 20px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { margin-bottom: 16px; }
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .modal-footer button {
+      padding: 10px 20px;
+      font-size: 0.9rem;
+    }
+    .modal-footer #cancelModalPersonaBtn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -667,7 +728,7 @@
 
     <div class="card">
       <div class="input-group">
-        <label for="sourceText">원문 텍스트 (필수)</label>
+        <label for="sourceText">원문 텍스트</label>
         <textarea 
           id="sourceText" 
           rows="6" 
@@ -678,7 +739,7 @@
           <label style="margin:0; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
             <input type="file" id="sourceTextFileInput" accept=".txt,.pdf" style="display:none;">
             <span style="background:#e2e8f0; border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-size:0.8rem;">파일 선택</span>
-            <span style="font-size:0.75rem; color:var(--muted);">.txt 파일 업로드 (선택)</span>
+            <span style="font-size:0.75rem; color:var(--muted);">.txt 또는 .pdf 파일 업로드</span>
           </label>
           <span id="sourceTextFileStatus" style="font-size:0.75rem; color:var(--muted);"></span>
         </div>
@@ -687,15 +748,36 @@
       </div>
 
       <div class="input-group">
-        <label for="knownWords">이미 아는 단어 목록 (선택)</label>
+        <label for="profile" style="font-size:0.9rem;">내 상황 (선택)</label>
         <input 
           type="text" 
-          id="knownWords" 
-          placeholder="comma, patty, grill (콤마로 구분)"
+          id="profile" 
+          placeholder="예: 내일 첫 shift, For here or to go? / Make that a combo? 오늘 바로 써야 함"
+          style="width:100%; padding:12px; border:1px solid var(--border); border-radius:6px; font-size:0.95rem; font-family:inherit;"
         >
-        <p class="hint">이미 아는 단어를 제외할 때 사용합니다. 없으면 스킵해도 됩니다.</p>
+        <p class="hint">지금 이 콘텐츠를 접하는 내 상황·한 줄 맥락을 적어 주세요. 페르소나를 선택하면 페르소나의 상황으로 자동 채워집니다.</p>
       </div>
 
+      <div class="persona-section">
+        <div class="section-title" style="margin-bottom: 12px;">
+          <span>페르소나</span>
+          <button id="addPersonaBtn" type="button" style="padding: 4px 10px; font-size: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">추가</button>
+        </div>
+        <div id="personaList" class="persona-list"></div>
+        <div id="personaFeedbackRow" class="persona-feedback-row hidden">
+          <label for="personaFeedbackInput">페르소나 피드백</label>
+          <textarea 
+            id="personaFeedbackInput" 
+            rows="2" 
+            placeholder="예: 이런 형식의 예문 좋았어, N2 레벨 단어 위주로, 조금 더 쉬운 예문"
+          ></textarea>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button id="savePersonaFeedbackBtn" type="button" style="padding: 8px 14px; font-size: 0.85rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">피드백 저장</button>
+            <button id="clearPersonaFeedbackBtn" type="button" style="padding: 8px 14px; font-size: 0.85rem; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">피드백 지우기</button>
+          </div>
+          <p class="hint">이 페르소나로 뽑을 때 참고할 피드백을 남겨둘 수 있어요. 예문 스타일, 난이도, 원하는 수준 같은 내용을 적으면 됩니다.</p>
+        </div>
+      </div>
       <details class="input-group" style="margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; background: var(--card);">
         <summary style="cursor:pointer; font-weight:600; font-size:0.95rem; color:var(--text); list-style:none; display:flex; align-items:center; gap:8px;">
           <span id="advancedToggleIcon" style="display:inline-block; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--primary); margin-top:4px;"></span>
@@ -725,7 +807,17 @@
           </div>
 
           <div class="input-group" style="margin-bottom: 16px;">
-            <label for="focusWords">집중 단어 (선택, 콤마로 구분)</label>
+            <label for="knownWords">이미 아는 단어 (선택)</label>
+            <input 
+              type="text" 
+              id="knownWords" 
+              placeholder="comma, patty, grill (콤마로 구분)"
+            >
+            <p class="hint">이미 아는 단어를 제외할 때 사용합니다. 없으면 스킵해도 됩니다.</p>
+          </div>
+
+          <div class="input-group" style="margin-bottom: 16px;">
+            <label for="focusWords">집중 단어 (선택)</label>
             <input 
               type="text" 
               id="focusWords" 
@@ -755,27 +847,6 @@
           <p class="hint" style="margin-top:6px;">원문과 상황/설명 언어가 다를 때 이 정보를 넣으면 단어 표기와 설명 언어를 더 일관되게 맞출 수 있어요. 예를 들어 원문은 영어인데 상황이 일본어 맥락이거나, 설명만 한국어로 보고 싶은 경우 등에 써요.</p>
         </div>
       </details>
-
-      <div class="persona-section">
-        <div class="section-title" style="margin-bottom: 12px;">
-          <span>페르소나</span>
-          <button id="addPersonaBtn" type="button" style="padding: 4px 10px; font-size: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">추가</button>
-        </div>
-        <div id="personaList" class="persona-list"></div>
-        <div id="personaFeedbackRow" class="persona-feedback-row hidden">
-          <label for="personaFeedbackInput">페르소나 피드백</label>
-          <textarea 
-            id="personaFeedbackInput" 
-            rows="2" 
-            placeholder="예: 이런 형식의 예문 좋았어, N2 레벨 단어 위주로, 조금 더 쉬운 예문"
-          ></textarea>
-          <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button id="savePersonaFeedbackBtn" type="button" style="padding: 8px 14px; font-size: 0.85rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">피드백 저장</button>
-            <button id="clearPersonaFeedbackBtn" type="button" style="padding: 8px 14px; font-size: 0.85rem; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">피드백 지우기</button>
-          </div>
-          <p class="hint">이 페르소나로 뽑을 때 참고할 피드백을 남겨둘 수 있어요. 예문 스타일, 난이도, 원하는 수준 같은 내용을 적으면 됩니다.</p>
-        </div>
-      </div>
 
       <button id="generateBtn" type="button">어휘 추출하기</button>
       <p class="hint" style="margin-top: 12px;">결과는 Solar Pro 4 API를 통해 생성됩니다. API 키는 서버에서 관리합니다.</p>
@@ -888,7 +959,36 @@
 
   <div id="toast" class="toast"></div>
 
+  <div id="personaModal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><span id="modalPersonaTitle">페르소나 추가</span></h3>
+        <button id="closePersonaModalBtn" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group" style="margin-bottom: 16px;">
+          <label for="modalPersonaName">이름 (필수)</label>
+          <input type="text" id="modalPersonaName" placeholder="예: 버거집 카운터 알바 준비생">
+        </div>
+        <div class="input-group" style="margin-bottom: 16px;">
+          <label for="modalPersonaTagline">한 줄 설명 (선택)</label>
+          <input type="text" id="modalPersonaTagline" placeholder="예: 미국 버거집에서 내일 첫 출근">
+        </div>
+        <div class="input-group" style="margin-bottom: 16px;">
+          <label for="modalPersonaSituation">상황/설정 (선택)</label>
+          <textarea id="modalPersonaSituation" rows="3" placeholder="예: 미국 버거집 카운터 알바 준비 중, 내일 첫 shift. For here or to go? / Make that a combo? 오늘 바로 써야 함"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveModalPersonaBtn">저장</button>
+        <button id="cancelModalPersonaBtn">취소</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    let fileLoadedText = '';
     const sourceTextInput = document.getElementById('sourceText');
     const sourceTextFileInput = document.getElementById('sourceTextFileInput');
     const sourceTextFileStatus = document.getElementById('sourceTextFileStatus');
@@ -982,10 +1082,10 @@
       const profile = (persona && persona.situation && persona.situation.trim())
         ? persona.situation.trim()
         : profileInput.value.trim();
-      const sourceText = sourceTextInput.value.trim();
+      const sourceText = sourceTextInput.value.trim() || fileLoadedText.trim();
       
       if (!sourceText) {
-        showError('원문 텍스트를 입력해주세요.');
+        showError('원문 텍스트를 입력하거나 파일을 선택해 주세요.');
         sourceTextInput.focus();
         return;
       }
@@ -1343,6 +1443,7 @@
         const meaning = card['뜻'] || '-';
         const originExample = card['원문예문'] || '-';
         const contextExample = card['내상황에서'] || '-';
+        const situationalExample = card['상황예문'] || '-';
         const reason = card['왜필요한가'] || '-';
         const priority = card['우선순위'] || '-';
         const confidence = card['확신도'] || '-';
@@ -1367,6 +1468,12 @@
                 <div class="word-card-origin">
                   <span class="word-card-label">원문 예문:</span>
                   ${escapeHtml(originExample)}
+                </div>
+              ` : ''}
+              ${situationalExample && situationalExample !== '-' ? `
+                <div class="word-card-context" style="border-left-color: #9f7aea; background: #faf5ff;">
+                  <span class="word-card-label">상황 예문:</span>
+                  ${escapeHtml(situationalExample)}
                 </div>
               ` : ''}
               ${contextExample && contextExample !== '-' ? `
@@ -1614,6 +1721,8 @@
     function downloadCsvByButton(btn, label) {
       const csvData = btn.dataset.csvData;
       const personaName = btn.dataset.personaName || '';
+      const isQuizlet = btn.id === 'downloadQuizletCsvBtn';
+      const csvType = isQuizlet ? 'quizlet' : 'anki';
       
       if (!csvData || csvData === '') {
         showToast('다운로드할 CSV 데이터가 없습니다.');
@@ -1623,7 +1732,9 @@
       const today = new Date();
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const safeName = (personaName || '').trim().replace(/[^0-9A-Za-z가-힣_\s-]/g, '').slice(0, 20).replace(/\s+/g, '-');
-      const filename = safeName ? `vocab-${dateStr}-${safeName}.csv` : `vocab-${dateStr}.csv`;
+      const filename = safeName
+        ? `vocab-${dateStr}-${csvType}-${safeName}.csv`
+        : `vocab-${dateStr}-${csvType}.csv`;
       
       const blob = new Blob(['﻿' + csvData], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1636,7 +1747,7 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      showToast(`${filename} 다운로드 완료 (${label})`);
+      showToast(`${filename} 다운로드 완료 (${csvType})`);
     }
 
     function downloadQuizletCsv() {
@@ -1697,6 +1808,7 @@
             sourceTextFileStatus.textContent = '';
             return;
           }
+          fileLoadedText = text;
           sourceTextInput.value = text;
           sourceTextFileStatus.textContent = `파일 반영: ${file.name} (${text.length}자)`;
         } else {
@@ -1705,6 +1817,7 @@
           reader.onload = function(ev) {
             const text = ev.target ? ev.target.result : '';
             if (text && typeof text === 'string') {
+              fileLoadedText = text;
               sourceTextInput.value = text;
               sourceTextFileStatus.textContent = `파일 반영: ${file.name} (${text.length}자)`;
             } else {
@@ -1759,6 +1872,7 @@
 
     // 페르소나
     let currentSelectedPersonaId = null;
+    let editingPersonaId = null;
 
     function renderPersonaList() {
       const list = document.getElementById('personaList');
@@ -1826,18 +1940,13 @@
       const personas = loadPersonas();
       const persona = personas.find(p => p.id === id);
       if (!persona) return;
-      if (confirm(`페르소나 "${persona.name || '이름 없음'}"를 수정하시겠어요?`)) {
-        const newName = prompt('페르소나 이름:', persona.name || '');
-        if (newName == null) return;
-        const newTagline = prompt('한 줄 설명(선택):', persona.tagline || '');
-        if (newTagline == null) return;
-        const newSituation = prompt('상황/설정 (선택):', persona.situation || '');
-        if (newSituation == null) return;
-        const updated = personas.map(p => p.id === id ? { ...p, name: newName || p.name, tagline: newTagline || p.tagline, situation: newSituation || p.situation } : p);
-        savePersonas(updated);
-        renderPersonaList();
-        applySelectedPersona();
-      }
+      editingPersonaId = id;
+      document.getElementById('modalPersonaTitle').textContent = '페르소나 수정';
+      document.getElementById('modalPersonaName').value = persona.name || '';
+      document.getElementById('modalPersonaTagline').value = persona.tagline || '';
+      document.getElementById('modalPersonaSituation').value = persona.situation || '';
+      document.getElementById('personaModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('modalPersonaName').focus(), 50);
     }
 
     function deletePersona(id) {
@@ -1856,27 +1965,69 @@
     }
 
     function addPersona() {
-      const name = prompt('페르소나 이름:', '');
-      if (name == null || !name.trim()) return;
-      const tagline = prompt('한 줄 설명(선택):', '');
-      if (tagline == null) return;
-      const situation = prompt('상황/설정 (선택, 예: 미국 버거집 카운터 알바 준비 중, 내일 첫 shift):', '');
-      if (situation == null) return;
+      document.getElementById('modalPersonaName').value = '';
+      document.getElementById('modalPersonaTagline').value = '';
+      document.getElementById('modalPersonaSituation').value = '';
+      document.getElementById('personaModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('modalPersonaName').focus(), 50);
+    }
+
+    function saveModalPersona() {
+      const name = document.getElementById('modalPersonaName').value.trim();
+      if (!name) {
+        showToast('이름을 입력해 주세요.');
+        document.getElementById('modalPersonaName').focus();
+        return;
+      }
+      const tagline = document.getElementById('modalPersonaTagline').value.trim();
+      const situation = document.getElementById('modalPersonaSituation').value.trim();
       const personas = loadPersonas();
-      const newPersona = {
-        id: generatePersonaId(),
-        name: name.trim(),
-        tagline: tagline ? tagline.trim() : '',
-        situation: situation ? situation.trim() : ''
-      };
-      personas.push(newPersona);
-      savePersonas(personas);
-      currentSelectedPersonaId = newPersona.id;
-      renderPersonaList();
-      applySelectedPersona();
+      if (editingPersonaId) {
+        const idx = personas.findIndex(p => p.id === editingPersonaId);
+        if (idx === -1) {
+          showToast('편집 대상이 없어졌어요. 다시 시도해 주세요.');
+          closePersonaModal();
+          return;
+        }
+        personas[idx] = { ...personas[idx], name, tagline: tagline || '', situation: situation || '' };
+        savePersonas(personas);
+        if (currentSelectedPersonaId === editingPersonaId) {
+          applySelectedPersona();
+        }
+        renderPersonaList();
+        showToast(`페르소나 "${name}"이(가) 수정됐어요.`);
+      } else {
+        const newPersona = {
+          id: generatePersonaId(),
+          name,
+          tagline: tagline || '',
+          situation: situation || ''
+        };
+        personas.push(newPersona);
+        savePersonas(personas);
+        currentSelectedPersonaId = newPersona.id;
+        renderPersonaList();
+        applySelectedPersona();
+        showToast(`페르소나 "${name}"이(가) 추가됐어요.`);
+      }
+      closePersonaModal();
+    }
+
+    function closePersonaModal() {
+      editingPersonaId = null;
+      document.getElementById('modalPersonaTitle').textContent = '페르소나 추가';
+      document.getElementById('personaModal').classList.add('hidden');
     }
 
     document.getElementById('addPersonaBtn').addEventListener('click', addPersona);
+    document.getElementById('saveModalPersonaBtn').addEventListener('click', saveModalPersona);
+    document.getElementById('cancelModalPersonaBtn').addEventListener('click', closePersonaModal);
+    document.getElementById('closePersonaModalBtn').addEventListener('click', closePersonaModal);
+    document.getElementById('personaModal').addEventListener('click', function(e) {
+      if (e.target === this || e.target.classList.contains('modal-overlay')) {
+        closePersonaModal();
+      }
+    });
     document.getElementById('savePersonaFeedbackBtn').addEventListener('click', function() {
       const personas = loadPersonas();
       const persona = personas.find(p => p.id === currentSelectedPersonaId);
@@ -1899,7 +2050,7 @@
 
     renderPersonaList();
     applySelectedPersona();
+
   </script>
 </body>
 </html>
-
