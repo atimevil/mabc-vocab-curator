@@ -1157,7 +1157,16 @@
       const filteredCards = filterCardsByHistory(parsedCards, extractedHistory, focusSet);
       if (filteredCards.length > 0) {
         renderWordCards(filteredCards);
-        renderCsvPreviewAndDownload(filteredCards, csvLines.join('\n'));
+        // filteredCards에 남은 표제어만 CSV에서도 남겨서 내려줄 것 (이력 필터링 반영)
+        const filteredTitles = new Set(filteredCards.map(c => c['표제어']));
+        const filteredCsvLines = [csvLines[0]]; // 헤더 행은 그대로 유지
+        for (let i = 1; i < csvLines.length; i++) {
+          const row = parseCsvLine(csvLines[i]);
+          if (row.length > 0 && filteredTitles.has(row[0])) {
+            filteredCsvLines.push(csvLines[i]);
+          }
+        }
+        renderCsvPreviewAndDownload(filteredCards, filteredCsvLines.join('\n'));
       } else {
         wordCardsEl.classList.add('hidden');
         wordCardsEmptyEl.classList.remove('hidden');
