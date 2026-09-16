@@ -1149,7 +1149,8 @@
     function renderResult(rawResult, sourceText, extractedHistory, focusWords, personaId) {
       console.log('[renderResult] 호출, 원본 길이:', rawResult ? rawResult.length : 0);
       
-      const cards = csvLinesToCards(rawResult ? rawResult.split('\n') : []);
+      // CSＶ 블록은 이제 원본 문자열 그대로 넘겨서 논리적 행 단위 분할 + 파싱
+      const cards = csvLinesToCards(extractCsvLinesFromBlock(rawResult));
       const extractedTitles = cards.map(c => (c['표제어'] || '').trim()).filter(Boolean);
       
       if (sourceText) {
@@ -1193,6 +1194,11 @@
       let inTodayWords = false;
       let inProfileSection = false;
       let profileMappingLines = [];
+
+      const csvBlock = extractCsvBlock(rawResult);
+      if (csvBlock) {
+        csvLines = splitCsvBlock(csvBlock);
+      }
 
       for (const line of lines) {
         const trimmed = line.trim();
@@ -1356,14 +1362,25 @@
       });
     }
 
-    function csvLinesToCards(lines) {
-      if (lines.length < 2) return [];
-      const headers = parseCsvLine(lines[0]);
+    function csvLinesToCards(logicalLines) {
+      if (logicalLines.length < 2) return [];
+      let headerLine = logicalLines[0];
+      // 마크다운 파이프 테이블로 넘어왔으면 콤마 행으로 변환
+      if (isTableRow(headerLine)) {
+        const converted = rowFromMarkdownTable(headerLine);
+        if (converted) headerLine = converted;
+      }
+      const headers = parseCsvLine(headerLine);
       const headerCount = headers.length;
       if (headerCount === 0) return [];
+
       const cards = [];
-      for (let i = 1; i < lines.length; i++) {
-        const raw = lines[i];
+      for (let i = 1; i < logicalLines.length; i++) {
+        let raw = logicalLines[i];
+        if (isTableRow(raw)) {
+          const converted = rowFromMarkdownTable(raw);
+          if (converted) raw = converted;
+        }
         const row = parseCsvLine(raw);
         if (row.length < 1) continue;
         if (row.length !== headerCount) {
@@ -1535,16 +1552,92 @@
       });
     }
 
+    function splitCsvBlock(csvBlockText) {
+      if (typeof csvBlockText !== 'string') return [];
+      const rows = [];
+      let lineChars = '';
+      let inQuote = false;
+      const len = csvBlockText.length;
+
+      for (let i = 0; i < len; i++) {
+        const ch = csvBlockText[i];
+        if (ch === '"') {
+          if (inQuote && i + 1 < len && csvBlockText[i + 1] === '"') {
+            lineChars += '"';
+            i++;
+            continue;
+          }
+          inQuote = !inQuote;
+          lineChars += ch;
+        } else if (ch === '\n' && !inQuote) {
+          rows.push(lineChars);
+          lineChars = '';
+        } else if (ch === '\r') {
+          if (!inQuote && i + 1 < len && csvBlockText[i + 1] === '\n') {
+            rows.push(lineChars);
+            lineChars = '';
+            i++;
+          } else {
+            rows.push(lineChars);
+            lineChars = '';
+          }
+        } else {
+          lineChars += ch;
+        }
+      }
+      if (lineChars.length > 0 || (len > 0 && csvBlockText[len - 1] === '\n')) {
+        rows.push(lineChars);
+      }
+      return rows;
+    }
+
+    function extractCsvBlock(rawResult) {
+      if (!rawResult || typeof rawResult !== 'string') return null;
+      const CSV_HEADER = '표제어,읽기,품사,뜻,상황예문,상황예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위';
+      const lines = rawResult.split('\n');
+      let headerLineIdx = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim().replace(/"/g, '') === CSV_HEADER) {
+          headerLineIdx = i;
+          break;
+        }
+      }
+      if (headerLineIdx === -1) return null;
+      const fromHeader = lines.slice(headerLineIdx).join('\n');
+      const nextHeadingMatch = fromHeader.slice(1).search(/\n##/);
+      const block = nextHeadingMatch === -1 ? fromHeader : fromHeader.slice(0, nextHeadingMatch + 1);
+      return block;
+    }
+
+    function extractCsvLinesFromBlock(rawResult) {
+      const block = extractCsvBlock(rawResult);
+      if (!block) return [];
+      return splitCsvBlock(block);
+    }
+
+    function isTableRow(line) {
+      return /^\s*\|([\s|]+\|)?$/.test(line) || (line.includes('|') && line.split(',').length <= 1);
+    }
+
+    function rowFromMarkdownTable(line) {
+      const csvFromTable = line.split('|').map(s => s.trim()).filter(s => s).join(',');
+      if (csvFromTable.split(',').length >= 2) {
+        return csvFromTable;
+      }
+      return null;
+    }
+
     function parseCsvLine(line) {
       const result = [];
       let current = '';
       let inQuotes = false;
-      
-      for (let i = 0; i < line.length; i++) {
+      const len = line.length;
+
+      for (let i = 0; i < len; i++) {
         const ch = line[i];
-        
+
         if (ch === '"') {
-          if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+          if (inQuotes && i + 1 < len && line[i + 1] === '"') {
             current += '"';
             i++;
           } else {
@@ -1557,105 +1650,9 @@
           current += ch;
         }
       }
-      
+
       result.push(current.trim());
       return result;
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    function escapeAttr(value) {
-      if (value == null) return '';
-      return String(value).replace(/[&<>"']/g, function(ch) {
-        if (ch === '&') return '&amp;';
-        if (ch === '<') return '&lt;';
-        if (ch === '>') return '&gt;';
-        if (ch === '"') return '&quot;';
-        if (ch === "'") return '&#39;';
-        return ch;
-      });
-    }
-
-    const HISTORY_KEY = 'vocab-history-words';
-    const FOCUS_KEY = 'vocab-focus-words';
-
-    function loadHistory(personaId) {
-      try {
-        const key = HISTORY_KEY + ':' + (personaId || 'default');
-        const raw = localStorage.getItem(key);
-        if (!raw) return [];
-        const data = JSON.parse(raw);
-        if (!Array.isArray(data)) return [];
-        return data;
-      } catch (e) {
-        return [];
-      }
-    }
-
-    function saveHistory(entry, personaId) {
-      try {
-        const key = HISTORY_KEY + ':' + (personaId || 'default');
-        const all = loadHistory(personaId);
-        all.push(entry);
-        localStorage.setItem(key, JSON.stringify(all.slice(-200)));
-      } catch (e) {
-        // 저장 실패 시 조용히 넘김
-      }
-    }
-
-    function loadFocusWords() {
-      try {
-        const raw = localStorage.getItem(FOCUS_KEY);
-        if (!raw) return [];
-        const data = JSON.parse(raw);
-        if (!Array.isArray(data)) return [];
-        return data;
-      } catch (e) {
-        return [];
-      }
-    }
-
-    function saveFocusWords(words) {
-      try {
-        localStorage.setItem(FOCUS_KEY, JSON.stringify(words.slice(0, 100)));
-      } catch (e) {
-        // 저장 실패 시 조용히 넘김
-      }
-    }
-
-    function normalizeMeaning(s) {
-      if (!s) return '';
-      return String(s).trim().replace(/^\s*[-\u2013\u2014\u2022\u2502\u25CF\u2605\u25A0\u25C6]+\s*/, '').replace(/\s+/g, ' ').trim() || '';
-    }
-
-    function getExtractedTitles(rawResult) {
-      const lines = rawResult.split('\n');
-      let inCsv = false;
-      const titles = [];
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.replace(/[\""]/g, '') === '표제어,읽기,품사,뜻,상황예문,상황예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
-          inCsv = true;
-          continue;
-        }
-        if (inCsv) {
-          if (trimmed.startsWith('```') || trimmed.startsWith('##')) {
-            inCsv = false;
-            continue;
-          }
-          const row = parseCsvLine(trimmed);
-          if (row.length > 0 && row[0]) {
-            const title = row[0].trim();
-            const meaning = row.length >= 4 ? normalizeMeaning(row[3] || '') : '';
-            titles.push({ title, meaning });
-          }
-        }
-      }
-      return titles;
     }
 
     function getHistoryTitles(personaId) {
