@@ -1296,7 +1296,7 @@
       const header = 'Front,Back';
       const rows = cards.map(card => {
         const title = card['표제어'] || '';
-        const reading = card['읽기'] || '';
+        const reading = (card['읽기'] || '').trim() === '-' ? '' : (card['읽기'] || '').trim();
         const front = reading ? `${title} (${reading})` : title;
         const meaning = card['뜻'] || '';
         const situationExample = card['상황예문'] || '';
@@ -1373,7 +1373,7 @@
         const isPriorityNow = card['우선순위'] &&
           (card['우선순위'].includes('지금 바로') || card['우선순위'].includes('Now'));
         const title = card['표제어'] || '표제어 없음';
-        const reading = card['읽기'] || '';
+        const reading = (card['읽기'] || '').trim() === '-' ? '' : (card['읽기'] || '').trim();
         const meaning = card['뜻'] || '-';
         const contextExample = card['내상황에서'] || '-';
         const situationalExample = card['상황예문'] || '-';
