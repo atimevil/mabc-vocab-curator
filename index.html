@@ -789,7 +789,7 @@
               <div style="display:flex; gap:6px;">
                 <button type="button" class="preset-btn" data-count="5" style="background:#f7fafc; color:var(--text); border:1px solid var(--border); border-radius:4px; padding:6px 10px; font-size:0.8rem; cursor:pointer;">5개</button>
                 <button type="button" class="preset-btn" data-count="10" style="background:#f7fafc; color:var(--text); border:1px solid var(--border); border-radius:4px; padding:6px 10px; font-size:0.8rem; cursor:pointer;">10개</button>
-                <button type="button" class="preset-btn" data-count="15" style="background:#ebf8ff; color:var(--primary); border:1px solid var(--primary); border-radius:4px; padding:6px 10px; font-size:0.8rem; cursor:pointer;">15개</button>
+                <button type="button" class="preset-btn" data-count="15" style="background:#f7fafc; color:var(--text); border:1px solid var(--border); border-radius:4px; padding:6px 10px; font-size:0.8rem; cursor:pointer;">15개</button>
                 <button type="button" class="preset-btn" data-count="20" style="background:#f7fafc; color:var(--text); border:1px solid var(--border); border-radius:4px; padding:6px 10px; font-size:0.8rem; cursor:pointer;">20개</button>
               </div>
             </div>
@@ -1424,12 +1424,15 @@
       wordCardsEmptyEl.classList.add('hidden');
       document.getElementById('wordCount').textContent = `${cards.length}개 단어`;
 
-      if (cards.length <= 5) {
-        const wordCardsSection = document.getElementById('wordCardsSection');
-        if (wordCardsSection) {
+      const wordCardsSection = document.getElementById('wordCardsSection');
+      if (wordCardsSection) {
+        const existingNote = document.getElementById('wordCountNote');
+        if (existingNote) existingNote.remove();
+        if (cards.length <= 5) {
           const sectionTitle = wordCardsSection.querySelector('.word-cards-title');
           if (sectionTitle) {
             const note = document.createElement('p');
+            note.id = 'wordCountNote';
             note.style.margin = '0 0 12px';
             note.style.fontSize = '0.9rem';
             note.style.color = 'var(--muted)';
@@ -1816,15 +1819,30 @@
     // 이벤트 리스너
     generateBtn.addEventListener('click', generateVocabulary);
     
+    function updatePresetBtnHighlight() {
+      const current = String(extractCountInput ? extractCountInput.value : '').trim();
+      document.querySelectorAll('.preset-btn').forEach(function(btn) {
+        const isActive = btn.getAttribute('data-count') === current;
+        btn.style.background = isActive ? '#ebf8ff' : '#f7fafc';
+        btn.style.color = isActive ? 'var(--primary)' : 'var(--text)';
+        btn.style.border = isActive ? '1px solid var(--primary)' : '1px solid var(--border)';
+      });
+    }
+
     document.querySelectorAll('.preset-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
         const count = parseInt(btn.getAttribute('data-count'), 10);
         if (!isNaN(count) && extractCountInput) {
           extractCountInput.value = count;
+          updatePresetBtnHighlight();
         }
       });
     });
-    
+    if (extractCountInput) {
+      extractCountInput.addEventListener('input', updatePresetBtnHighlight);
+      updatePresetBtnHighlight();
+    }
+
     sourceTextFileInput.addEventListener('change', async function(e) {
       const file = e.target.files && e.target.files[0];
       if (!file) {
