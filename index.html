@@ -1155,7 +1155,12 @@
       if (sourceText) {
         const sourceWords = extractSourceWords(sourceText);
         const historyTitles = getHistoryTitles(personaId);
-        const covered = sourceWords.filter(w => historyTitles.has(w));
+        const covered = sourceWords.filter(w => {
+          if (historyTitles.has(w)) return true;
+          // 일본어/중국어처럼 공백 없는 언어는 토큰이 문장 단위로 뭉치므로, 이력 표제어가 그 안에 포함돼 있는지도 확인
+          for (const t of historyTitles) { if (t.length >= 2 && w.includes(t)) return true; }
+          return false;
+        });
         const total = sourceWords.length;
         const coveredCount = covered.length;
         const percent = total > 0 ? Math.round((coveredCount / total) * 100) : 0;
@@ -1693,7 +1698,9 @@
     }
 
     function extractSourceWords(text) {
-      const tokens = text.toLowerCase().match(/[a-z][a-z0-9']*/g);
+      // 영어 등 라틴 알파벳 단어 + 한자/히라가나/가타카나/한글 연속 구간을 각각 토큰으로 취급
+      // (일본어/한국어 등 공백 없는 원문에서도 커버리지 계산이 항상 0이 되지 않도록)
+      const tokens = text.toLowerCase().match(/[a-z][a-z0-9']*|[一-鿿぀-ゟ゠-ヿ]+|[가-힣]+/g);
       if (!tokens) return [];
       const unique = Array.from(new Set(tokens));
       return unique.filter(w => w.length >= 2);
