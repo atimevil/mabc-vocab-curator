@@ -960,12 +960,12 @@
         <div class="input-group" style="margin-bottom: 16px;">
           <label for="modalPersonaName">이름 (필수)</label>
           <input type="text" id="modalPersonaName" placeholder="예: 버거집 카운터 알바 준비생">
-          <p class="hint">카드 구분용 이름이에요. 어휘 생성 내용에는 영향을 주지 않아요.</p>
+          <p class="hint">카드 구분용 이름이에요. 아래 두 칸이 모두 비어 있을 때만 이름이 상황 설명 대신 쓰여요.</p>
         </div>
         <div class="input-group" style="margin-bottom: 16px;">
           <label for="modalPersonaTagline">한 줄 설명 (선택)</label>
           <input type="text" id="modalPersonaTagline" placeholder="예: 미국 버거집에서 내일 첫 출근">
-          <p class="hint">아래 상황/설정과 함께 어휘 생성에 반영돼요.</p>
+          <p class="hint">아래 상황/설정과 이어 붙여 하나의 프로필로 넘어가요. 둘 중 한 칸만 채워도 돼요.</p>
         </div>
         <div class="input-group" style="margin-bottom: 16px;">
           <label for="modalPersonaSituation">상황/설정 (선택)</label>
@@ -1071,7 +1071,7 @@
       const persona = personas.find(p => p.id === currentSelectedPersonaId);
       const personaFeedback = persona ? (loadPersonaFeedback(persona.id) || '').trim() : '';
       const profile = persona
-        ? [persona.tagline && persona.tagline.trim(), persona.situation && persona.situation.trim()].filter(Boolean).join('. ')
+        ? ([persona.tagline && persona.tagline.trim(), persona.situation && persona.situation.trim()].filter(Boolean).join('. ') || (persona.name || '').trim())
         : '';
       const sourceText = sourceTextInput.value.trim() || fileLoadedText.trim();
       
@@ -1122,8 +1122,10 @@
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           let msg = errorData.error || `서버 오류: ${response.status}`;
-          if (response.status === 500 || (errorData.message && errorData.message.includes('Missing credentials'))) {
+          if (errorData.code === 'MISSING_API_KEY') {
             msg = '서버 환경 설정이 필요해요. (UPSTAGE_API_KEY 확인)';
+          } else if (response.status === 500) {
+            msg = '결과를 만드는 중 문제가 생겼어요. 잠시 후 다시 시도하거나, 추출 개수를 줄여보세요.';
           } else if (response.status === 504) {
             msg = '요청이 너무 오래 걸렸어요. 잠시 후 다시 시도하세요.';
           }
@@ -1136,6 +1138,18 @@
           throw new Error(data.error || '어휘 생성 실패');
         }
         
+        if (data.result && Array.isArray(data.result.words)) {
+          const knownSet = new Set(knownWords.split(',').map(w => w.trim().toLowerCase()).filter(Boolean));
+          const focusLower = new Set(focusWords.map(f => f.toLowerCase().trim()));
+          const lowerSource = sourceText.toLowerCase();
+          data.result.words = data.result.words.filter(c => {
+            const title = (c['표제어'] || '').trim().toLowerCase();
+            if (!title) return false;
+            if (focusLower.has(title)) return true;
+            if (knownSet.has(title)) return false;
+            return appearsInSource(title, lowerSource);
+          });
+        }
         renderResult(data.result, sourceText, extractedHistory, focusWords, persona ? persona.id : null);
         saveExtractedWords(data.result, persona ? persona.id : null);
         showResult();
@@ -1148,20 +1162,18 @@
       }
     }
 
-    function renderResult(rawResult, sourceText, extractedHistory, focusWords, personaId) {
-      console.log('[renderResult] 호출, 원본 길이:', rawResult ? rawResult.length : 0);
-      
-      // CSＶ 블록은 이제 원본 문자열 그대로 넘겨서 논리적 행 단위 분할 + 파싱
-      const cards = csvLinesToCards(extractCsvLinesFromBlock(rawResult));
-      const extractedTitles = cards.map(c => (c['표제어'] || '').trim()).filter(Boolean);
-      
+    function renderResult(resultObj, sourceText, extractedHistory, focusWords, personaId) {
+      if (!resultObj || typeof resultObj !== 'object') {
+        resultObj = { profileInterpretation: null, words: [], todayTop3: null };
+      }
+
       if (sourceText) {
         const sourceWords = extractSourceWords(sourceText);
         const historyTitles = getHistoryTitles(personaId);
         // 이력 표제어가 여러 단어로 된 구(phrase)일 수 있어서, 토큰 단위 비교 대신
         // 원문 전체에 그 표제어가 그대로 포함돼 있는지로 직접 확인한다
         const lowerSourceText = sourceText.toLowerCase();
-        const covered = Array.from(historyTitles).filter(t => t.length >= 2 && lowerSourceText.includes(t));
+        const covered = Array.from(historyTitles).filter(t => t.length >= 2 && appearsInSource(t, lowerSourceText));
         const total = sourceWords.length;
         const coveredCount = covered.length;
         const percent = total > 0 ? Math.round((coveredCount / total) * 100) : 0;
@@ -1169,162 +1181,37 @@
         coverageBox.innerHTML = `
           <p style="margin: 0 0 6px;">이 글의 단어 중 <strong>이미 생성 이력이 있는 단어</strong>는 ${coveredCount}개예요.</p>
           <p style="margin: 0; color: var(--muted); font-size: 0.85rem;">전체 ${total}개 중 ${percent}%가 이미 뽑힌 적이 있어요.</p>
-          ${coveredCount > 0 ? `<p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--muted);">이력에 있는 단어: ${escapeHtml(covered.slice(0, 20).join(', '))}${covered.length > 20 ? ' …' : ''}
-          </p>` : '<p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--muted);">아직 이 글에서 새로 뽑은 단어가 없어요.</p>'}
+          ${coveredCount > 0 ? `<p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--muted);">이력에 있는 단어: ${escapeHtml(covered.slice(0, 20).join(', '))}${covered.length > 20 ? ' …' : ''}</p>` : '<p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--muted);">아직 이 글에서 새로 뽑은 단어가 없어요.</p>'}
         `;
       } else {
         coverageValue.textContent = '';
         coverageBox.innerHTML = '';
       }
 
-      console.log('[renderResult] 호출, 원본 길이:', rawResult ? rawResult.length : 0);
-      
-      // 폴백: rawResult가 비어있거나 null이면 빈 문자열로
-      if (!rawResult || typeof rawResult !== 'string') {
-        console.warn('[renderResult] rawResult가 비어있거나 문자열이 아님 — 빈 결과로 처리');
-        rawResult = '';
-      }
-      
-      const lines = rawResult.split('\n');
-      let currentSection = '';
-      let profileLines = [];
-      let csvLines = [];
-      let todayWordsLines = [];
-      let inCsv = false;
-      let inTodayWords = false;
-      let inProfileSection = false;
-      let profileMappingLines = [];
-
-      const csvBlock = extractCsvBlock(rawResult);
-      if (csvBlock) {
-        csvLines = splitCsvBlock(csvBlock);
-      }
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('##')) {
-          const heading = trimmed.replace(/^##\s*/, '').trim();
-          currentSection = heading;
-          if (heading === '프로필 해석') {
-            inProfileSection = true;
-            inCsv = false;
-            inTodayWords = false;
-          } else if (heading === 'CSV') {
-            inProfileSection = false;
-            inCsv = true;
-            inTodayWords = false;
-          } else if (heading === '오늘의 3단어') {
-            inProfileSection = false;
-            inCsv = false;
-            inTodayWords = true;
-          } else {
-            inProfileSection = false;
-            inCsv = false;
-            inTodayWords = false;
-          }
-          continue;
-        }
-        if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
-          const heading = trimmed.replace(/^#\s*/, '').trim();
-          currentSection = heading;
-          if (heading === '프로필 해석') {
-            inProfileSection = true;
-            inCsv = false;
-            inTodayWords = false;
-          } else {
-            inProfileSection = false;
-            inCsv = false;
-            inTodayWords = false;
-          }
-          continue;
-        }
-        if (inProfileSection && trimmed && !trimmed.startsWith('```') && !trimmed.startsWith('표제어')) {
-          profileLines.push(trimmed);
-        }
-        if (inProfileSection && profileLines.length > 0 && profileMappingLines.length < 5 &&
-            trimmed && !trimmed.startsWith('```') && !trimmed.startsWith('표제어') &&
-            !trimmed.includes('오늘의 3단어') && !trimmed.includes('3단어') && !trimmed.includes('Today')) {
-          if (trimmed.includes('장면') || trimmed.includes('상황') || trimmed.includes('맥락') ||
-              trimmed.includes('카운터') || trimmed.includes('시험') || trimmed.includes('왜') ||
-              trimmed.includes('때문에') || trimmed.includes('목적으로') || trimmed.includes('접객') ||
-              trimmed.includes('주문') || trimmed.includes('계산') || trimmed.includes('업셀')) {
-            profileMappingLines.push(trimmed);
-          }
-        }
-        if (trimmed.replace(/["]/g, '') === '표제어,읽기,품사,뜻,상황예문,상황예문번역,내상황에서,말투등급,연어,확신도,왜필요한가,우선순위') {
-          inCsv = true;
-          csvLines = [trimmed];
-          continue;
-        }
-        if (inCsv) {
-          if (trimmed.startsWith('```') || trimmed.startsWith('##')) {
-            inCsv = false;
-          } else {
-            const isTableRow = /^\s*\|[\s|]+\|$/.test(trimmed) || (trimmed.includes('|') && trimmed.split(',').length <= 1);
-            if (isTableRow) {
-              const csvFromTable = trimmed.split('|').map(s => s.trim()).filter(s => s).join(',');
-              if (csvFromTable.split(',').length >= 2) {
-                csvLines.push(csvFromTable);
-              }
-            } else if (trimmed.includes(',')) {
-              csvLines.push(trimmed);
-            }
-          }
-          continue;
-        }
-        if (inTodayWords && trimmed && !trimmed.startsWith('```')) {
-          todayWordsLines.push(trimmed);
-        }
-      }
-
-      console.log('[renderResult] 프로필 라인 수:', profileLines.length);
-      console.log('[renderResult] CSV 라인 수:', csvLines.length);
-      console.log('[renderResult] 오늘의 3단어 라인 수:', todayWordsLines.length);
-
-      // 프로필 해석 폴백: 프로필 라인이 없으면 기본 메시지
-      if (profileLines.length === 0) {
+      const p = resultObj.profileInterpretation;
+      if (!p || (!p.line1 && !p.line2 && !p.line3)) {
         profileInterpretationEl.innerHTML = '<p style="color: var(--muted);">프로필 해석 결과가 없어요. 원문이나 내 상황을 더 구체적으로 입력하면 더 정확한 결과가 나와요.</p>';
       } else {
-        profileInterpretationEl.innerHTML = profileLines
-          .filter(l => l)
+        profileInterpretationEl.innerHTML = [p.line1, p.line2, p.line3]
+          .filter(Boolean)
           .map(l => `<p>${escapeHtml(l)}</p>`)
           .join('');
       }
 
-      if (profileMappingLines.length > 0) {
-        const mappingEl = document.createElement('div');
-        mappingEl.className = 'profile-mapping';
-        mappingEl.innerHTML = `
-          <h4>내 상황에 맞춘 매핑</h4>
-          ${profileMappingLines.filter(l => l).map(l => `<p>${escapeHtml(l)}</p>`).join('')}
-        `;
-        profileInterpretationEl.appendChild(mappingEl);
-      }
-
-      const parsedCards = csvLinesToCards(csvLines);
+      const parsedCards = Array.isArray(resultObj.words) ? resultObj.words : [];
       const focusSet = new Set((focusWords || []).map(f => f.toLowerCase().trim()));
-      const titleMeaningMap = getHistoryTitleMeaningMap(personaId || null);
-      const filteredCards = filterCardsByHistory(parsedCards, titleMeaningMap, focusSet);
+      const filteredCards = filterCardsByHistory(parsedCards, getHistoryTitles(personaId || null), focusSet);
+
       if (filteredCards.length > 0) {
         renderWordCards(filteredCards);
-        // filteredCards에 남은 표제어만 CSV에서도 남겨서 내려줄 것 (이력 필터링 반영)
-        const filteredTitles = new Set(filteredCards.map(c => c['표제어']));
-        const filteredCsvLines = [csvLines[0]]; // 헤더 행은 그대로 유지
-        for (let i = 1; i < csvLines.length; i++) {
-          const row = parseCsvLine(csvLines[i]);
-          if (row.length > 0 && filteredTitles.has(row[0])) {
-            filteredCsvLines.push(csvLines[i]);
-          }
-        }
-        renderCsvPreviewAndDownload(filteredCards, filteredCsvLines.join('\n'));
+        renderCsvPreviewAndDownload(filteredCards);
       } else {
         wordCardsEl.classList.add('hidden');
         wordCardsEmptyEl.classList.remove('hidden');
         if (parsedCards.length === 0) {
-          // 진짜 파싱 실패: wordCardsEmpty의 기본 문구(파싱 실패 안내)를 그대로 사용
           wordCardsEmptyEl.innerHTML = wordCardsEmptyOriginalHtml;
         } else {
-          // parsedCards.length > 0 이지만 filterCardsByHistory에서 이력 중복으로 전부 걸러진 경우
+          // 이력 중복으로 전부 걸러진 경우
           wordCardsEmptyEl.innerHTML = `<p style="color: var(--muted); font-size: 0.9rem;">
             이 원문에서 나올 만한 단어는 이미 다 뽑았어요.
             <span style="display: block; margin-top: 4px;">새로운 원문을 넣거나, <strong>집중 단어</strong>로 다시 뽑아보세요.</span>
@@ -1335,9 +1222,12 @@
         downloadAnkiCsvBtn.dataset.csvData = '';
       }
 
-      if (todayWordsLines.length > 0) {
-        todayWordsEl.innerHTML = todayWordsLines
-          .filter(l => l)
+      const t = resultObj.todayTop3;
+      if (t && (t.titles || t.scene || t.dialogue)) {
+        todayWordsEl.innerHTML = [t.titles, t.scene, t.dialogue]
+          .filter(Boolean)
+          .flatMap(l => l.split('\n'))
+          .filter(l => l.trim())
           .map(l => `<p>${escapeHtml(l)}</p>`)
           .join('');
       } else {
@@ -1345,21 +1235,27 @@
       }
     }
 
-    // 표제어+뜻 맵을 기준으로, 표제어가 이력에 있어도 이번 카드의 뜻이 이력 뜻들과 겹치지 않으면(새 의미면) 통과
-    function filterCardsByHistory(cards, titleMeaningMap, focusSet) {
+    // 표제어가 이력에 있으면 걸러냄. 예전엔 뜻까지 비교했는데, 모델이 매번 뜻 문장을 다르게 써서
+    // 같은 단어가 '새 의미'로 계속 통과하는 문제가 있었음. 집중 단어는 무조건 유지.
+    function filterCardsByHistory(cards, historyTitles, focusSet) {
       return cards.filter(c => {
         const title = (c['표제어'] || '').toLowerCase().trim();
         if (!title) return true;
-        if (focusSet.has(title)) return true; // 포커스 단어는 무조건 유지
-        const existingMeanings = titleMeaningMap.get(title);
-        if (!existingMeanings || existingMeanings.size === 0) return true; // 이력 뜻 없으면 새 카드
-        const cardMeaning = normalizeMeaning(c['뜻'] || '');
-        if (!cardMeaning) return true; // 카드에 뜻이 없으면 보수적으로 통과
-        for (const m of existingMeanings) {
-          if (cardMeaning === m) return false; // 이미 같은 뜻의 카드가 있으면 걸러냄
-        }
-        return true; // 뜻은 다르지만 표제어는 같은 동음이의어 → 새 의미이므로 통과
+        if (focusSet.has(title)) return true;
+        return !historyTitles.has(title);
       });
+    }
+
+    // 표제어가 원문에 실제로 나오는지 확인. 기본형으로 바뀐 활용형(rescheduled → reschedule,
+    // 食べた → 食べる)도 잡도록 단어마다 앞부분(60%)만 비교한다.
+    // ponytail: 불규칙 활용(made → make)은 못 잡아서 그런 표제어는 원문에 없는 걸로 보고 빠짐
+    function appearsInSource(title, lowerSource) {
+      const t = title.toLowerCase().trim();
+      if (!t) return false;
+      if (lowerSource.includes(t)) return true;
+      const tokens = t.split(/[\s\-\/]+/).map(w => w.replace(/[^\p{L}\p{N}']/gu, '')).filter(w => w.length >= 3);
+      if (tokens.length === 0) return false;
+      return tokens.every(w => lowerSource.includes(w.slice(0, Math.max(2, Math.ceil(w.length * 0.6)))));
     }
 
     function csvLinesToCards(logicalLines) {
@@ -1422,11 +1318,17 @@
       return str;
     }
 
-    function renderCsvPreviewAndDownload(cards, rawCsvLines) {
+    function buildAnkiCsv(cards) {
+      const headers = ['표제어','읽기','품사','뜻','상황예문','상황예문번역','내상황에서','말투등급','연어','확신도','왜필요한가','우선순위'];
+      const rows = cards.map(card => headers.map(h => escapeCsvField(card[h] || '')).join(','));
+      return [headers.map(h => escapeCsvField(h)).join(','), ...rows].join('\n');
+    }
+
+    function renderCsvPreviewAndDownload(cards) {
       const quizletCsv = buildQuizletCsv(cards);
       csvPreviewEl.textContent = quizletCsv;
       downloadQuizletCsvBtn.dataset.csvData = quizletCsv;
-      downloadAnkiCsvBtn.dataset.csvData = rawCsvLines || '';
+      downloadAnkiCsvBtn.dataset.csvData = buildAnkiCsv(cards);
       const personas = loadPersonas();
       const persona = personas.find(p => p.id === currentSelectedPersonaId);
       downloadQuizletCsvBtn.dataset.personaId = persona ? persona.id : '';
@@ -1725,18 +1627,11 @@
       return String(s).trim().replace(/^\s*[-–—•│●★■◆]+\s*/, '').replace(/\s+/g, ' ').trim() || '';
     }
 
-    function getExtractedTitles(rawResult) {
-      const lines = extractCsvLinesFromBlock(rawResult);
-      const titles = [];
-      for (let i = 1; i < lines.length; i++) {
-        const row = parseCsvLine(lines[i]);
-        if (row.length > 0 && row[0]) {
-          const title = row[0].trim();
-          const meaning = row.length >= 4 ? normalizeMeaning(row[3] || '') : '';
-          titles.push({ title, meaning });
-        }
-      }
-      return titles;
+    function getExtractedTitles(resultObj) {
+      const words = (resultObj && Array.isArray(resultObj.words)) ? resultObj.words : [];
+      return words
+        .filter(c => c && c['표제어'])
+        .map(c => ({ title: c['표제어'].trim(), meaning: normalizeMeaning(c['뜻'] || '') }));
     }
 
     function getHistoryTitles(personaId) {
@@ -1787,8 +1682,8 @@
       return unique.filter(w => w.length >= 2);
     }
 
-    function saveExtractedWords(rawResult, personaId) {
-      const titles = getExtractedTitles(rawResult);
+    function saveExtractedWords(resultObj, personaId) {
+      const titles = getExtractedTitles(resultObj);
       if (!titles.length) return;
       const today = new Date();
       const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
