@@ -1095,7 +1095,17 @@
       const crossLangOriginal = crossLangOriginalInput.value.trim() || '';
       const crossLangContext = crossLangContextInput.value.trim() || '';
       
-      const extractedHistory = Array.from(getHistoryTitles(persona ? persona.id : null));
+      // 비교는 정규화된 표제어로 하지만, 모델에는 원래 표기(대소문자 포함)로 보냄.
+      // 소문자로 보내면 모델이 새 표제어도 소문자로 따라 써서 "can i substitute"처럼 나옴
+      const historyByKey = new Map();
+      for (const entry of loadHistory(persona ? persona.id : null)) {
+        const list = Array.isArray(entry.items) ? entry.items.map(i => i && i.title) : (Array.isArray(entry.titles) ? entry.titles : []);
+        for (const t of list) {
+          const key = normalizeTitle(t);
+          if (key && !historyByKey.has(key)) historyByKey.set(key, String(t).trim());
+        }
+      }
+      const extractedHistory = Array.from(historyByKey.values());
       
       showLoading();
       
@@ -1139,11 +1149,11 @@
         }
         
         if (data.result && Array.isArray(data.result.words)) {
-          const knownSet = new Set(knownWords.split(',').map(w => w.trim().toLowerCase()).filter(Boolean));
-          const focusLower = new Set(focusWords.map(f => f.toLowerCase().trim()));
+          const knownSet = new Set(knownWords.split(',').map(normalizeTitle).filter(Boolean));
+          const focusLower = new Set(focusWords.map(normalizeTitle));
           const lowerSource = sourceText.toLowerCase();
           data.result.words = data.result.words.filter(c => {
-            const title = (c['표제어'] || '').trim().toLowerCase();
+            const title = normalizeTitle(c['표제어']);
             if (!title) return false;
             if (focusLower.has(title)) return true;
             if (knownSet.has(title)) return false;
@@ -1199,7 +1209,7 @@
       }
 
       const parsedCards = Array.isArray(resultObj.words) ? resultObj.words : [];
-      const focusSet = new Set((focusWords || []).map(f => f.toLowerCase().trim()));
+      const focusSet = new Set((focusWords || []).map(normalizeTitle));
       const filteredCards = filterCardsByHistory(parsedCards, getHistoryTitles(personaId || null), focusSet);
 
       if (filteredCards.length > 0) {
@@ -1207,6 +1217,10 @@
         renderCsvPreviewAndDownload(filteredCards);
       } else {
         wordCardsEl.classList.add('hidden');
+        wordCardsEl.innerHTML = '';
+        document.getElementById('wordCount').textContent = '';
+        const staleNote = document.getElementById('wordCountNote');
+        if (staleNote) staleNote.remove();
         wordCardsEmptyEl.classList.remove('hidden');
         if (parsedCards.length === 0) {
           wordCardsEmptyEl.innerHTML = wordCardsEmptyOriginalHtml;
@@ -1239,7 +1253,7 @@
     // 같은 단어가 '새 의미'로 계속 통과하는 문제가 있었음. 집중 단어는 무조건 유지.
     function filterCardsByHistory(cards, historyTitles, focusSet) {
       return cards.filter(c => {
-        const title = (c['표제어'] || '').toLowerCase().trim();
+        const title = normalizeTitle(c['표제어']);
         if (!title) return true;
         if (focusSet.has(title)) return true;
         return !historyTitles.has(title);
@@ -1622,6 +1636,16 @@
       }
     }
 
+    // 표제어 비교용: 모델이 같은 표현을 "For here or to go?" / "for here or to go"처럼
+    // 대소문자·앞뒤 문장부호만 바꿔 쓰는 경우가 있어서 이걸 같은 단어로 본다
+    function normalizeTitle(s) {
+      return String(s || '')
+        .toLowerCase()
+        .replace(/[’‘]/g, "'")
+        .replace(/\s+/g, ' ')
+        .replace(/^[\s"'“”.,!?;:()]+|[\s"'“”.,!?;:()]+$/g, '');
+    }
+
     function normalizeMeaning(s) {
       if (!s) return '';
       return String(s).trim().replace(/^\s*[-–—•│●★■◆]+\s*/, '').replace(/\s+/g, ' ').trim() || '';
@@ -1640,11 +1664,11 @@
       for (const entry of all) {
         if (entry.items && Array.isArray(entry.items)) {
           for (const item of entry.items) {
-            if (item && item.title) titles.add(item.title.trim().toLowerCase());
+            if (item && item.title) titles.add(normalizeTitle(item.title));
           }
         } else if (entry.titles && Array.isArray(entry.titles)) {
           for (const t of entry.titles) {
-            if (t) titles.add(t.trim().toLowerCase());
+            if (t) titles.add(normalizeTitle(t));
           }
         }
       }

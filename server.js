@@ -43,7 +43,7 @@ const RESPONSE_JSON_SCHEMA = {
             type: "object",
             properties: {
               "표제어": { type: "string" },
-              "읽기": { type: "string" },
+              "읽기": { type: "string", description: "일본어·중국어 등 발음 표기가 필요한 언어만. 영어는 빈 문자열" },
               "품사": { type: "string" },
               "뜻": { type: "string" },
               "상황예문": { type: "string", description: "원문 언어로만 쓴 완전한 문장 (한국어 금지)" },
