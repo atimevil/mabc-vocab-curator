@@ -52,7 +52,7 @@ async function generateVocabResult(profile, sourceText, knownWords = '', extract
   const response = await client.chat.completions.create({
     model: 'solar-pro4',
     messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
+    temperature: 0.3,
     max_tokens: 4000
   });
   
