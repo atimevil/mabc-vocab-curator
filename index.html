@@ -1090,9 +1090,7 @@
       const crossLangOriginal = crossLangOriginalInput.value.trim() || '';
       const crossLangContext = crossLangContextInput.value.trim() || '';
       
-      const extractedHistory = loadHistory(persona ? persona.id : null)
-        .filter(h => h.titles && Array.isArray(h.titles))
-        .flatMap(h => h.titles);
+      const extractedHistory = Array.from(getHistoryTitles(persona ? persona.id : null));
       
       showLoading();
       
@@ -1155,12 +1153,10 @@
       if (sourceText) {
         const sourceWords = extractSourceWords(sourceText);
         const historyTitles = getHistoryTitles(personaId);
-        const covered = sourceWords.filter(w => {
-          if (historyTitles.has(w)) return true;
-          // 일본어/중국어처럼 공백 없는 언어는 토큰이 문장 단위로 뭉치므로, 이력 표제어가 그 안에 포함돼 있는지도 확인
-          for (const t of historyTitles) { if (t.length >= 2 && w.includes(t)) return true; }
-          return false;
-        });
+        // 이력 표제어가 여러 단어로 된 구(phrase)일 수 있어서, 토큰 단위 비교 대신
+        // 원문 전체에 그 표제어가 그대로 포함돼 있는지로 직접 확인한다
+        const lowerSourceText = sourceText.toLowerCase();
+        const covered = Array.from(historyTitles).filter(t => t.length >= 2 && lowerSourceText.includes(t));
         const total = sourceWords.length;
         const coveredCount = covered.length;
         const percent = total > 0 ? Math.round((coveredCount / total) * 100) : 0;
