@@ -1470,7 +1470,7 @@
               <h3 class="word-card-title">${escapeHtml(titleDisplay)}</h3>
               <div class="word-card-priority">
               ${isPriorityNow
-              ? '<span class="priority-badge">지금 바로</span>'
+              ? '<span class="priority-badge">⭐ 지금 바로</span>'
               : `<span style="font-size: 0.75rem; color: var(--muted);">${escapeHtml(priority)}</span>`}
             </div>
             </div>
@@ -1505,7 +1505,7 @@
               </div>
             </div>
             <button class="reason-toggle-btn" data-card-index="${idx}">
-              ${isPriorityNow ? '💡 왜 지금 바로 추천?' : '📌 왜 이 단어 추천?'}
+              ${isPriorityNow ? '⭐ 왜 별표 표시?' : '📌 왜 이 단어 추천?'}
             </button>
             <div class="reason-content" data-card-index="${idx}">
               <div class="word-card-reason">
