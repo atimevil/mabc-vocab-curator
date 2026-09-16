@@ -993,6 +993,7 @@
     const profileInterpretationEl = document.getElementById('profileInterpretation');
     const wordCardsEl = document.getElementById('wordCards');
     const wordCardsEmptyEl = document.getElementById('wordCardsEmpty');
+    const wordCardsEmptyOriginalHtml = wordCardsEmptyEl ? wordCardsEmptyEl.innerHTML : '';
     const coverageBox = document.getElementById('coverageBox');
     const coverageValue = document.getElementById('coverageValue');
     const todayWordsEl = document.getElementById('todayWords');
@@ -1306,6 +1307,16 @@
       } else {
         wordCardsEl.classList.add('hidden');
         wordCardsEmptyEl.classList.remove('hidden');
+        if (parsedCards.length === 0) {
+          // 진짜 파싱 실패: wordCardsEmpty의 기본 문구(파싱 실패 안내)를 그대로 사용
+          wordCardsEmptyEl.innerHTML = wordCardsEmptyOriginalHtml;
+        } else {
+          // parsedCards.length > 0 이지만 filterCardsByHistory에서 이력 중복으로 전부 걸러진 경우
+          wordCardsEmptyEl.innerHTML = `<p style="color: var(--muted); font-size: 0.9rem;">
+            이 원문에서 나올 만한 단어는 이미 다 뽑았어요.
+            <span style="display: block; margin-top: 4px;">새로운 원문을 넣거나, <strong>집중 단어</strong>로 다시 뽑아보세요.</span>
+          </p>`;
+        }
         csvPreviewEl.textContent = '';
         downloadQuizletCsvBtn.dataset.csvData = '';
         downloadAnkiCsvBtn.dataset.csvData = '';
