@@ -42,8 +42,8 @@ const RESPONSE_JSON_SCHEMA = {
           items: {
             type: "object",
             properties: {
-              "표제어": { type: "string" },
-              "읽기": { type: "string", description: "일본어·중국어 등 발음 표기가 필요한 언어만. 영어는 빈 문자열" },
+              "표제어": { type: "string", description: "원문에 나온 대소문자를 그대로 살린다. 문장 첫 글자, 고유명사, 대명사 I, 줄임말/약어의 대소문자도 원문 그대로 둔다. 표에 쓸 때는 원문 표기 그대로, 임의로 소문자로 바꾸지 않는다." },
+              "읽기": { type: "string", description: "읽기(발음 표기)는 일본어 후리가나·중국어 병음처럼 글자만 보고 발음을 바로 알기 어려운 언어일 때만 채운다. 영어 등 알파벳만으로 발음을 유추할 수 있는 언어는 빈 문자열로 둔다. 로마자 발음 표기(한국어 발음을 로마자로 적은 것), 한글 발음 표기, 영어 발음 풀이 등은 넣지 않는다." },
               "품사": { type: "string" },
               "뜻": { type: "string" },
               "상황예문": { type: "string", description: "원문 언어로만 쓴 완전한 문장 (한국어 금지)" },
