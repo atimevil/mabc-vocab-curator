@@ -1289,7 +1289,8 @@
 
       const parsedCards = csvLinesToCards(csvLines);
       const focusSet = new Set((focusWords || []).map(f => f.toLowerCase().trim()));
-      const filteredCards = filterCardsByHistory(parsedCards, extractedHistory, focusSet);
+      const titleMeaningMap = getHistoryTitleMeaningMap(personaId || null);
+      const filteredCards = filterCardsByHistory(parsedCards, titleMeaningMap, focusSet);
       if (filteredCards.length > 0) {
         renderWordCards(filteredCards);
         // filteredCards에 남은 표제어만 CSV에서도 남겨서 내려줄 것 (이력 필터링 반영)
@@ -1320,11 +1321,20 @@
       }
     }
 
-    function filterCardsByHistory(cards, extractedHistory, focusSet) {
-      const historySet = new Set(extractedHistory.map(h => h.toLowerCase().trim()));
+    // 표제어+뜻 맵을 기준으로, 표제어가 이력에 있어도 이번 카드의 뜻이 이력 뜻들과 겹치지 않으면(새 의미면) 통과
+    function filterCardsByHistory(cards, titleMeaningMap, focusSet) {
       return cards.filter(c => {
         const title = (c['표제어'] || '').toLowerCase().trim();
-        return !historySet.has(title) || focusSet.has(title);
+        if (!title) return true;
+        if (focusSet.has(title)) return true; // 포커스 단어는 무조건 유지
+        const existingMeanings = titleMeaningMap.get(title);
+        if (!existingMeanings || existingMeanings.size === 0) return true; // 이력 뜻 없으면 새 카드
+        const cardMeaning = normalizeMeaning(c['뜻'] || '');
+        if (!cardMeaning) return true; // 카드에 뜻이 없으면 보수적으로 통과
+        for (const m of existingMeanings) {
+          if (cardMeaning === m) return false; // 이미 같은 뜻의 카드가 있으면 걸러냄
+        }
+        return true; // 뜻은 다르지만 표제어는 같은 동음이의어 → 새 의미이므로 통과
       });
     }
 
@@ -1596,6 +1606,11 @@
       }
     }
 
+    function normalizeMeaning(s) {
+      if (!s) return '';
+      return String(s).trim().replace(/^\s*[-\u2013\u2014\u2022\u2502\u25CF\u2605\u25A0\u25C6]+\s*/, '').replace(/\s+/g, ' ').trim() || '';
+    }
+
     function getExtractedTitles(rawResult) {
       const lines = rawResult.split('\n');
       let inCsv = false;
@@ -1613,7 +1628,9 @@
           }
           const row = parseCsvLine(trimmed);
           if (row.length > 0 && row[0]) {
-            titles.push(row[0].trim());
+            const title = row[0].trim();
+            const meaning = row.length >= 4 ? normalizeMeaning(row[3] || '') : '';
+            titles.push({ title, meaning });
           }
         }
       }
@@ -1624,13 +1641,39 @@
       const all = loadHistory(personaId);
       const titles = new Set();
       for (const entry of all) {
-        if (entry.titles && Array.isArray(entry.titles)) {
+        if (entry.items && Array.isArray(entry.items)) {
+          for (const item of entry.items) {
+            if (item && item.title) titles.add(item.title.trim().toLowerCase());
+          }
+        } else if (entry.titles && Array.isArray(entry.titles)) {
           for (const t of entry.titles) {
             if (t) titles.add(t.trim().toLowerCase());
           }
         }
       }
       return titles;
+    }
+
+    // 특정 personaId의 추출 이력에서 표제어를 키로, 그동안 나온 뜻들의 정규화된 Set을 반환
+    // 구형 이력({titles: [...]})이 있어도 에러 없이 동작: 뜻은 빈 문자열로 취급
+    function getHistoryTitleMeaningMap(personaId) {
+      const map = new Map();
+      const all = loadHistory(personaId);
+      for (const entry of all) {
+        const items = (entry && entry.items) ? entry.items : null;
+        const titles = (entry && entry.titles) ? entry.titles : null;
+        const list = items || (Array.isArray(titles) ? titles.map(t => ({ title: t, meaning: '' })) : null);
+        if (!Array.isArray(list)) continue;
+        for (const item of list) {
+          if (!item || typeof item !== 'object') continue;
+          const title = (item.title || '').trim().toLowerCase();
+          if (!title) continue;
+          const mean = normalizeMeaning(item.meaning || '');
+          if (!map.has(title)) map.set(title, new Set());
+          if (mean) map.get(title).add(mean);
+        }
+      }
+      return map;
     }
 
     function extractSourceWords(text) {
@@ -1645,9 +1688,11 @@
       if (!titles.length) return;
       const today = new Date();
       const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      // 구형 이력({titles})과의 호환성을 위해 items 형태로 저장하되, 예전에 {titles}로 저장된 데이터도
+      // getHistoryTitleMeaningMap에서 items || titles 폴백으로 읽을 수 있게 해뒀으므로 마이그레이션 불필요
       const entry = {
         date: dayKey,
-        titles: titles,
+        items: titles.map(t => ({ title: t.title, meaning: t.meaning })),
         savedAt: new Date().toISOString()
       };
       saveHistory(entry, personaId);
