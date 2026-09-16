@@ -960,14 +960,17 @@
         <div class="input-group" style="margin-bottom: 16px;">
           <label for="modalPersonaName">이름 (필수)</label>
           <input type="text" id="modalPersonaName" placeholder="예: 버거집 카운터 알바 준비생">
+          <p class="hint">카드 구분용 이름이에요. 어휘 생성 내용에는 영향을 주지 않아요.</p>
         </div>
         <div class="input-group" style="margin-bottom: 16px;">
           <label for="modalPersonaTagline">한 줄 설명 (선택)</label>
           <input type="text" id="modalPersonaTagline" placeholder="예: 미국 버거집에서 내일 첫 출근">
+          <p class="hint">아래 상황/설정과 함께 어휘 생성에 반영돼요.</p>
         </div>
         <div class="input-group" style="margin-bottom: 16px;">
           <label for="modalPersonaSituation">상황/설정 (선택)</label>
           <textarea id="modalPersonaSituation" rows="3" placeholder="예: 미국 버거집 카운터 알바 준비 중, 내일 첫 shift. For here or to go? / Make that a combo? 오늘 바로 써야 함"></textarea>
+          <p class="hint">여기 적은 내용이 실제로 예문·표현 생성에 가장 크게 반영돼요. 하고 싶은 설정은 여기에 자세히 적어주세요.</p>
         </div>
       </div>
       <div class="modal-footer">
@@ -1067,7 +1070,9 @@
       const personas = loadPersonas();
       const persona = personas.find(p => p.id === currentSelectedPersonaId);
       const personaFeedback = persona ? (loadPersonaFeedback(persona.id) || '').trim() : '';
-      const profile = (persona && persona.situation && persona.situation.trim()) ? persona.situation.trim() : '';
+      const profile = persona
+        ? [persona.tagline && persona.tagline.trim(), persona.situation && persona.situation.trim()].filter(Boolean).join('. ')
+        : '';
       const sourceText = sourceTextInput.value.trim() || fileLoadedText.trim();
       
       if (!sourceText) {
