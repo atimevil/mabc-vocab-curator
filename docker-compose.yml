@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    container_name: vocab-curator-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health | grep -q 'ok' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - vocab-curator-net
+      - portfolio-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: vocab-curator-nginx
+    restart: unless-stopped
+    ports:
+      - "5555:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - app
+    networks:
+      - vocab-curator-net
+
+networks:
+  vocab-curator-net:
+    driver: bridge
+  portfolio-net:
+    name: portfolio_portfolio-net
+    external: true
